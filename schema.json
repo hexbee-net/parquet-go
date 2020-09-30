@@ -1,0 +1,334 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/hexbee-net/parquet-go/schema-01",
+  "title":"Parquet Schema Definition",
+  "description": "JSON Schema for Parquet file schema",
+  "type": "object",
+  "required": [],
+
+  "patternProperties": {
+    "^[a-zA-Z][a-zA-Z0-9]+$":  { "$ref": "#/definitions/message" }
+  },
+
+  "definitions": {
+    "message": {
+      "type": "object",
+      "description": "Definition of a whole parquet message",
+      "additionalProperties": false,
+
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9]+$":  { "$ref": "#/definitions/column" }
+      }
+    },
+
+    "column": {
+      "type": "object",
+      "description": "Definition of a single column (field) in a message",
+      "additionalProperties": false,
+      "$ref": "#/definitions/field"
+    },
+
+
+    "field": {
+      "oneOf": [
+        { "$ref": "#/definitions/simple-field" },
+        { "$ref": "#/definitions/list-field-definition" },
+        { "$ref": "#/definitions/map-field-definition" }
+      ]
+    },
+
+    "simple-field": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+
+      "properties": {
+        "type": {
+          "oneOf": [
+            { "$ref": "#/definitions/primitive-type" },
+            { "$ref": "#/definitions/logical-type" }
+          ]
+        },
+        "repetition": {
+          "type": "string",
+          "enum": ["required", "repeated", "optional"],
+          "default": "required"
+        },
+        "converted-type": {
+          "readOnly": true,
+          "$ref": "#/definitions/converted-type"
+        },
+        "encoding": {
+          "readOnly": true,
+          "$ref": "#/definitions/encoding"
+        }
+      }
+    },
+
+    "list-field-definition": {
+      "type": "object",
+      "required": ["type", "data"],
+
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["list"]
+        },
+        "repetition": {
+          "type": "string",
+          "enum": ["required", "optional"],
+          "default": "required"
+        },
+        "data": { "$ref": "#/definitions/field" }
+      }
+    },
+
+    "map-field-definition": {
+      "type": "object",
+      "required": ["type", "key"],
+
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["map"]
+        },
+        "repetition": {
+          "type": "string",
+          "enum": ["required", "optional"],
+          "default": "required"
+        },
+        "key": { "$ref": "#/definitions/simple-field" },
+        "value": { "$ref": "#/definitions/field" }
+      }
+    },
+
+
+    "primitive-type": {
+      "oneOf": [
+        { "$ref": "#/definitions/primitive-type-string" },
+        { "$ref": "#/definitions/primitive-type-simple" },
+        { "$ref": "#/definitions/primitive-type-byte-array" },
+        { "$ref": "#/definitions/primitive-type-fixed-len-array" }
+      ]
+    },
+
+    "primitive-type-string": {
+      "type": "string",
+      "enum": [
+        "BOOLEAN",
+        "INT32",
+        "INT64",
+        "INT96",
+        "FLOAT",
+        "DOUBLE",
+        "BYTE_ARRAY"
+      ]
+    },
+    "primitive-type-simple": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/primitive-type-string",
+          "not": {
+            "type": "string",
+            "const": "BYTE_ARRAY"
+          }
+        }
+      }
+    },
+    "primitive-type-byte-array": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["BYTE_ARRAY"]
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "DELTA_BYTE_ARRAY",
+            "DELTA_LENGTH_BYTE_ARRAY"
+          ],
+          "default": "DELTA_BYTE_ARRAY"
+        }
+      }
+    },
+    "primitive-type-fixed-len-array": {
+      "type": "object",
+      "required": ["type", "length"],
+      "additionalProperties": false,
+
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["FIXED_LEN_BYTE_ARRAY"]
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+
+
+    "logical-type": {
+      "oneOf": [
+        { "$ref": "#/definitions/logical-type-simple-string" },
+        { "$ref": "#/definitions/logical-type-simple" },
+        { "$ref": "#/definitions/logical-type-int" },
+        { "$ref": "#/definitions/logical-type-decimal" },
+        { "$ref": "#/definitions/logical-type-time" }
+      ]
+    },
+
+    "logical-type-simple-string": {
+      "type": "string",
+      "enum": [
+        "STRING",
+        "ENUM",
+        "UUID",
+        "DATE",
+        "INTERVAL",
+        "JSON",
+        "BSON"
+      ]
+    },
+    "logical-type-simple": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+
+      "properties": {
+        "type": { "$ref": "#/definitions/logical-type-simple-string" },
+        "base-type": { "$ref": "#/definitions/primitive-type" }
+      }
+    },
+    "logical-type-int": {
+      "type": "object",
+      "required": ["type", "bit-width", "signed"],
+      "additionalProperties": false,
+
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "INTEGER"
+          ]
+        },
+        "base-type": { "$ref": "#/definitions/primitive-type" },
+        "bit-width": {
+          "type": "integer",
+          "enum": [8, 16, 32, 64]
+        },
+        "signed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "logical-type-decimal": {
+      "type": "object",
+      "required":  ["type", "precision", "scale"],
+      "additionalProperties": false,
+
+      "properties": {
+        "type":  {
+          "type": "string",
+          "enum": ["DECIMAL"]
+        },
+        "base-type": { "$ref": "#/definitions/primitive-type" },
+        "scale": {
+          "type": "integer"
+        },
+        "precision": {
+          "type": "integer"
+        }
+      }
+    },
+    "logical-type-time": {
+      "type": "object",
+      "required": ["type", "precision"],
+      "additionalProperties": false,
+
+      "properties": {
+        "type": {
+          "enum": ["TIME", "TIMESTAMP"]
+        },
+        "base-type": { "$ref": "#/definitions/primitive-type" },
+        "precision": {
+          "type": "string",
+          "enum": [
+            "MILLIS",
+            "MICROS",
+            "NANOS"
+          ]
+        },
+        "adjusted-to-utc": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+
+    "converted-type": {
+      "type": "string",
+      "description": "TODO",
+      "enum": [
+        "UTF8",
+        "MAP",
+        "MAP_KEY_VALUE",
+        "LIST",
+        "ENUM",
+        "DECIMAL",
+        "DATE",
+        "TIME_MILLIS",
+        "TIME_MICROS",
+        "TIMESTAMP_MILLIS",
+        "TIMESTAMP_MICROS",
+        "UINT_8",
+        "UINT_16",
+        "UINT_32",
+        "UINT_64",
+        "INT_8",
+        "INT_16",
+        "INT_32",
+        "INT_64",
+        "JSON",
+        "BSON",
+        "INTERVAL"
+      ]
+    },
+
+    "encoding": {
+      "type": "string",
+      "enum": [
+        "PLAIN",
+        "PLAIN_DICTIONARY",
+        "RLE",
+        "BIT_PACKED",
+        "DELTA_BINARY_PACKED",
+        "DELTA_LENGTH_BYTE_ARRAY",
+        "DELTA_BYTE_ARRAY",
+        "RLE_DICTIONARY",
+        "BYTE_STREAM_SPLIT"
+      ]
+    },
+
+    "compression-codec": {
+      "type": "string",
+      "enum": [
+        "UNCOMPRESSED",
+        "SNAPPY",
+        "GZIP",
+        "LZO",
+        "BROTLI",
+        "LZ4",
+        "ZSTD"
+      ]
+    }
+  }
+}
