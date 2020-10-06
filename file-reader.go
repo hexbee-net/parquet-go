@@ -35,6 +35,10 @@ type FileReader struct {
 	skipRowGroup     bool
 }
 
+// NewFileReader creates a new FileReader.
+// You can limit the columns that are read by providing the names of
+// the specific columns to read using dotted notation.
+// If no columns are provided, then all columns are read.
 func NewFileReader(r source.Reader, columns ...string) (*FileReader, error) {
 	meta, err := readFileMetaData(r)
 	if err != nil {

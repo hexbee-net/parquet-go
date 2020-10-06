@@ -26,6 +26,28 @@ type schemaCommon interface {
 	GetSchemaArray() []*parquet.SchemaElement
 }
 
+// Reader is an interface with methods necessary in the FileReader.
+type Reader interface {
+	schemaCommon
+
+	SetNumRecords(int64)
+	GetData() (map[string]interface{}, error)
+	SetSelectedColumns(selected ...string)
+	IsSelected(string) bool
+}
+
+// Writer is an interface with methods necessary in the FileWriter
+// to add groups and columns and to write data.
+type Writer interface {
+	schemaCommon
+
+	AddData(m map[string]interface{}) error
+	AddGroup(path string, rep parquet.FieldRepetitionType) error
+	AddColumn(path string, col *Column) error
+	DataSize() int64
+}
+
+
 type Schema struct {
 	schemaDef      *definition.Schema
 	Root           *Column
