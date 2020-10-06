@@ -61,17 +61,6 @@ func NewFileReader(r source.Reader, columns ...string) (*FileReader, error) {
 	}, nil
 }
 
-func defaultCompressors() map[parquet.CompressionCodec]compression.BlockCompressor {
-	return map[parquet.CompressionCodec]compression.BlockCompressor{
-		parquet.CompressionCodec_UNCOMPRESSED: compression.Uncompressed{},
-		parquet.CompressionCodec_SNAPPY:       compression.Snappy{},
-		parquet.CompressionCodec_GZIP:         compression.GZip{},
-		parquet.CompressionCodec_BROTLI:       compression.Brotli{},
-		parquet.CompressionCodec_LZ4:          compression.LZ4{},
-		parquet.CompressionCodec_ZSTD:         compression.ZStd{},
-	}
-}
-
 // CurrentRowGroup returns information about the current row group.
 func (f *FileReader) CurrentRowGroup() *parquet.RowGroup {
 	if f == nil || f.meta == nil || f.meta.RowGroups == nil || f.rowGroupPosition-1 >= len(f.meta.RowGroups) {
@@ -163,8 +152,6 @@ func (f *FileReader) readRowGroup() error {
 
 	f.rowGroupPosition++
 
-	//return readRowGroup(f.reader, f.Reader, f.meta.RowGroups[f.rowGroupPosition-1])
-
 	rowGroups := f.meta.RowGroups[f.rowGroupPosition-1]
 
 	f.Reader.ResetData()
@@ -182,7 +169,7 @@ func (f *FileReader) readRowGroup() error {
 			continue
 		}
 
-		pages, err := layout.ReadChunk(f.reader, c, chunk)
+		pages, err := f.chunkReader.ReadChunk(f.reader, c, chunk)
 		if err != nil {
 			return errors.Wrap(err, "failed to read data chunk")
 		}
@@ -191,6 +178,8 @@ func (f *FileReader) readRowGroup() error {
 			return errors.Wrap(err, "failed to read page data")
 		}
 	}
+
+	return nil
 }
 
 func readFileMetaData(r source.Reader) (*parquet.FileMetaData, error) {
@@ -259,6 +248,40 @@ func readFileSchema(meta *parquet.FileMetaData) (schema.Reader, error) {
 	return s, nil
 }
 
+func readPageData(col *schema.Column, pages []layout.PageReader) error {
+	s := col.ColumnStore()
+
+	for i := range pages {
+		data := make([]interface{}, pages[i].NumValues())
+		n, dl, rl, err := pages[i].ReadValues(data)
+		if err != nil {
+			return err
+		}
+
+		if int32(n) != pages[i].NumValues() {
+			return errors.WithFields(
+				errors.New("unexpected number of values"),
+				errors.Fields{
+					"expected": pages[i].NumValues(),
+					"actual":   n,
+				})
+		}
+
+		// using append to make sure we handle the multiple data page correctly
+		if err := s.RepetitionLevels.AppendArray(rl); err != nil {
+			return err
+		}
+		if err := s.DefinitionLevels.AppendArray(dl); err != nil {
+			return err
+		}
+
+		s.Values.Values = append(s.Values.Values, data...)
+		s.Values.NoDictMode = true
+	}
+
+	return nil
+}
+
 func metaDataToMap(kvMetaData []*parquet.KeyValue) map[string]string {
 	data := make(map[string]string)
 	for _, kv := range kvMetaData {
@@ -268,4 +291,15 @@ func metaDataToMap(kvMetaData []*parquet.KeyValue) map[string]string {
 	}
 
 	return data
+}
+
+func defaultCompressors() map[parquet.CompressionCodec]compression.BlockCompressor {
+	return map[parquet.CompressionCodec]compression.BlockCompressor{
+		parquet.CompressionCodec_UNCOMPRESSED: compression.Uncompressed{},
+		parquet.CompressionCodec_SNAPPY:       compression.Snappy{},
+		parquet.CompressionCodec_GZIP:         compression.GZip{},
+		parquet.CompressionCodec_BROTLI:       compression.Brotli{},
+		parquet.CompressionCodec_LZ4:          compression.LZ4{},
+		parquet.CompressionCodec_ZSTD:         compression.ZStd{},
+	}
 }

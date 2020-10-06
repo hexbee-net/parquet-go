@@ -8,5 +8,5 @@ type Dict struct {
 	valueSize  int64
 	readPos    int
 	nullCount  int32
-	noDictMode bool
+	NoDictMode bool
 }

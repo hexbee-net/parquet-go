@@ -53,8 +53,8 @@ type ColumnStore struct {
 
 	Values *Dict
 
-	dLevels *encoding.PackedArray
-	rLevels *encoding.PackedArray
+	DefinitionLevels *encoding.PackedArray
+	RepetitionLevels *encoding.PackedArray
 
 	enc     parquet.Encoding
 	readPos int

@@ -51,7 +51,7 @@ func SkipChunk(reader io.Seeker, col *schema.Column, chunk *parquet.ColumnChunk)
 	return nil
 }
 
-func (r *ChunkReader) ReadChunk(src source.Reader, col *schema.Column, chunk *parquet.ColumnChunk) ([]pageReader, error) {
+func (r *ChunkReader) ReadChunk(src source.Reader, col *schema.Column, chunk *parquet.ColumnChunk) ([]PageReader, error) {
 	if err := checkColumnChunk(chunk, col); err != nil {
 		return nil, err
 	}
@@ -126,9 +126,9 @@ func (r *ChunkReader) ReadChunk(src source.Reader, col *schema.Column, chunk *pa
 	return r.readPages(reader, col, chunk.MetaData, dDecoder, rDecoder)
 }
 
-func (r *ChunkReader) readPages(reader *offsetReader, col *schema.Column, chunkMeta *parquet.ColumnMetaData, dDecoder, rDecoder getLevelDecoderFn) ([]pageReader, error) {
+func (r *ChunkReader) readPages(reader *offsetReader, col *schema.Column, chunkMeta *parquet.ColumnMetaData, dDecoder, rDecoder getLevelDecoderFn) ([]PageReader, error) {
 	var dictPage *dictPageReader
-	var pages []pageReader
+	var pages []PageReader
 
 	for {
 		if chunkMeta.TotalCompressedSize-reader.Count() < 1 {
@@ -140,7 +140,7 @@ func (r *ChunkReader) readPages(reader *offsetReader, col *schema.Column, chunkM
 			return nil, errors.Wrap(err, "failed to read page header")
 		}
 
-		var p pageReader
+		var p PageReader
 		switch pageHeader.Type {
 		case parquet.PageType_DICTIONARY_PAGE:
 			if dictPage != nil {

@@ -10,24 +10,24 @@ import (
 	"github.com/hexbee-net/parquet/types"
 )
 
-// pageReader is an internal interface used only internally to read pages.
-type pageReader interface {
+// PageReader is an internal interface used only internally to read pages.
+type PageReader interface {
 	init(dDecoder, rDecoder getLevelDecoderFn, values getValueDecoderFn, compressors compressorMap) error
 	read(reader io.Reader, pageHeader *parquet.PageHeader, codec parquet.CompressionCodec) error
 
-	readValues(values []interface{}) (n int, dLevel *encoding.PackedArray, rLevel *encoding.PackedArray, err error)
+	ReadValues(values []interface{}) (n int, dLevel *encoding.PackedArray, rLevel *encoding.PackedArray, err error)
 
-	numValues() int32
+	NumValues() int32
 }
 
-// pageWriter is an internal interface used only internally to write pages.
-type pageWriter interface {
+// PageWriter is an internal interface used only internally to write pages.
+type PageWriter interface {
 	init(schema schema.Writer, col *schema.Column, codec parquet.CompressionCodec) error
 	write(w io.Writer) (int, int, error)
 }
 
 type page struct {
-	pageReader
+	PageReader
 
 	pageHeader    *parquet.PageHeader
 	valuesCount   int32

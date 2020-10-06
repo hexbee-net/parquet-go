@@ -77,7 +77,7 @@ func (r *dataPageReaderV1) read(reader io.Reader, pageHeader *parquet.PageHeader
 	return r.valuesDecoder.Init(dataReader)
 }
 
-func (r *dataPageReaderV1) readValues(values []interface{}) (n int, dLevel *encoding.PackedArray, rLevel *encoding.PackedArray, err error) {
+func (r *dataPageReaderV1) ReadValues(values []interface{}) (n int, dLevel *encoding.PackedArray, rLevel *encoding.PackedArray, err error) {
 	size := len(values)
 	if rem := int(r.valuesCount) - r.position; rem < size {
 		size = rem
@@ -112,6 +112,6 @@ func (r *dataPageReaderV1) readValues(values []interface{}) (n int, dLevel *enco
 	return size, dLevel, rLevel, nil
 }
 
-func (r *dataPageReaderV1) numValues() int32 {
+func (r *dataPageReaderV1) NumValues() int32 {
 	return r.valuesCount
 }
