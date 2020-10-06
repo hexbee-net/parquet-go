@@ -18,7 +18,7 @@
  */
 
 /**
- * File format description for the parquet file format
+ * File format definition for the parquet file format
  */
 namespace cpp parquet
 namespace java org.apache.parquet.format

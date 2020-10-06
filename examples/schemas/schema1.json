@@ -1,0 +1,111 @@
+{
+  "logicalTypes": {
+    "StringSimple": {
+      "type": "STRING"
+    },
+    "String": {
+      "type": {
+        "type": "STRING",
+        "base-type": "BYTE_ARRAY"
+      }
+    },
+    "Enum": {
+      "type": "ENUM"
+    },
+    "UUID": {
+      "type": "UUID"
+    },
+    "Date": {
+      "type": "DATE"
+    },
+    "Interval": {
+      "type": "INTERVAL"
+    },
+    "JSON": {
+      "type": "JSON"
+    },
+    "BSON": {
+      "type": "BSON"
+    },
+    "Integer": {
+      "type": {
+        "type": "INTEGER",
+        "bit-width": 8,
+        "signed": false
+      }
+    },
+    "Decimal": {
+      "type": {
+        "type": "DECIMAL",
+        "scale": 10,
+        "precision": 5
+      }
+    },
+    "Time": {
+      "type": {
+        "type": "TIME",
+        "precision": "MILLIS"
+      }
+    },
+    "Timestamp": {
+      "type": {
+        "type": "TIMESTAMP",
+        "precision": "MILLIS"
+      }
+    }
+  },
+
+  "primitiveTypes": {
+    "Boolean": {
+      "type": "BOOLEAN"
+    },
+    "Int32": {
+      "type": "INT32"
+    },
+    "Int64": {
+      "type": "INT64"
+    },
+    "Int96": {
+      "type": "INT96"
+    },
+    "Float": {
+      "type": "FLOAT"
+    },
+    "Double": {
+      "type": "DOUBLE"
+    },
+    "ByteArray": {
+      "type": "BYTE_ARRAY"
+    },
+    "ByteArrayEncoding": {
+      "type": {
+        "type": "BYTE_ARRAY",
+        "encoding": "DELTA_BYTE_ARRAY"
+      }
+    },
+    "FixedLenByteArray": {
+      "type": {
+        "type": "FIXED_LEN_BYTE_ARRAY",
+        "length": 10
+      }
+    }
+  },
+
+  "groupTypes": {
+    "list": {
+      "type": "list",
+      "data": {
+        "type": "STRING"
+      }
+    },
+    "map": {
+      "type": "map",
+      "key": {
+        "type":"STRING"
+      },
+      "value": {
+        "type": "STRING"
+      }
+    }
+  }
+}
