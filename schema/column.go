@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/datastore"
 	"github.com/hexbee-net/parquet/parquet"
 	"github.com/hexbee-net/parquet/schema/definition"
@@ -65,22 +66,22 @@ func (c *Column) ColumnStore() *datastore.ColumnStore {
 
 // MaxDefinitionLevel returns the maximum definition level for this column.
 func (c *Column) MaxDefinitionLevel() uint16 {
-	panic("implement me")
+	return c.maxD
 }
 
 // MaxRepetitionLevel returns the maximum repetition value for this column.
 func (c *Column) MaxRepetitionLevel() uint16 {
-	panic("implement me")
+	return c.maxR
 }
 
 // FlatName returns the name of the column and its parents in dotted notation.
 func (c *Column) FlatName() string {
-	panic("implement me")
+	return c.flatName
 }
 
 // Name returns the column name.
 func (c *Column) Name() string {
-	panic("implement me")
+	return c.name
 }
 
 // Index returns the index of the column in schema, zero based.
@@ -101,36 +102,176 @@ func (c *Column) Element() *parquet.SchemaElement {
 // Type returns the parquet type of the value.
 // Returns nil if the column is a group.
 func (c *Column) Type() *parquet.Type {
-	panic("implement me")
+	if c.data == nil {
+		return nil
+	}
+
+	return parquet.TypePtr(c.data.ParquetType())
 }
 
 // RepetitionType returns the repetition type for the current column.
 func (c *Column) RepetitionType() *parquet.FieldRepetitionType {
-	panic("implement me")
+	return &c.rep
 }
 
 // DataColumn returns true if the column is data column, false otherwise.
 func (c *Column) IsDataColumn() bool {
-	panic("implement me")
+	return c.data != nil
 }
 
 // ChildrenCount returns the number of children in a group.
-// Returns -1 if the column is a data column.
-func (c *Column) ChildrenCount() int {
-	panic("implement me")
+func (c *Column) ChildrenCount() (int, error) {
+	if c.data != nil {
+		return 0, errors.New("not a group column")
+	}
+
+	return len(c.children), nil
 }
 
 func (c *Column) SetSkipped(b bool) {
-	// c.data.skipped = b
-	panic("implement me")
+	c.data.Skipped = b
 }
 
-func (c *Column) readGroupSchema(schema []*parquet.SchemaElement, name string, idx int, dLevel int, rLevel int) (int, error) {
-	panic("implement me")
+func (c *Column) readGroupSchema(schema []*parquet.SchemaElement, name string, idx int, dLevel, rLevel uint16) (newIndex int, err error) {
+	if len(schema) <= idx {
+		return 0, errors.WithFields(
+			errors.New("schema index out of bound"),
+			errors.Fields{
+				"index": idx,
+				"size":  len(schema),
+			})
+	}
+
+	s := schema[idx]
+
+	if s.Type != nil {
+		return 0, errors.WithFields(
+			errors.New("field type is not nil for group"),
+			errors.Fields{
+				"index": idx,
+			})
+	}
+
+	if s.NumChildren == nil {
+		return 0, errors.WithFields(
+			errors.New("field NumChildren is invalid"),
+			errors.Fields{
+				"index": idx,
+			})
+	}
+
+	if *s.NumChildren <= 0 {
+		return 0, errors.WithFields(
+			errors.New("field NumChildren is zero"),
+			errors.Fields{
+				"index": idx,
+			})
+	}
+
+	l := int(*s.NumChildren)
+
+	if len(schema) <= idx+l {
+		return 0, errors.WithFields(
+			errors.New("not enough element in schema list"),
+			errors.Fields{
+				"index": idx,
+			})
+	}
+
+	if s.RepetitionType != nil && *s.RepetitionType != parquet.FieldRepetitionType_REQUIRED {
+		dLevel++
+	}
+
+	if s.RepetitionType != nil && *s.RepetitionType == parquet.FieldRepetitionType_REPEATED {
+		rLevel++
+	}
+
+	c.maxD = dLevel
+	c.maxR = rLevel
+
+	if name == "" {
+		name = s.Name
+	} else {
+		name += "." + s.Name
+	}
+
+	c.flatName = name
+	c.name = s.Name
+	c.element = s
+	c.children = make([]*Column, 0, l)
+	c.rep = *s.RepetitionType
+
+	idx++ // move idx from this group to next
+
+	for i := 0; i < l; i++ {
+		child := &Column{}
+
+		if schema[idx].Type == nil {
+			// another group
+			idx, err = child.readGroupSchema(schema, name, idx, dLevel, rLevel)
+			if err != nil {
+				return 0, err
+			}
+
+			c.children = append(c.children, child)
+		} else {
+			idx, err = child.readColumnSchema(schema, name, idx, dLevel, rLevel)
+			if err != nil {
+				return 0, err
+			}
+
+			c.children = append(c.children, child)
+		}
+	}
+
+	return idx, nil
 }
 
-func (c *Column) readColumnSchema(schema []*parquet.SchemaElement, name string, idx int, dLevel int, rLevel int) (int, error) {
-	panic("implement me")
+func (c *Column) readColumnSchema(schema []*parquet.SchemaElement, name string, idx int, dLevel, rLevel uint16) (newIndex int, err error) {
+	s := schema[idx]
+
+	if s.Name == "" {
+		return 0, errors.WithFields(
+			errors.New("name in schema is empty"),
+			errors.Fields{
+				"index": idx,
+			})
+	}
+
+	if s.RepetitionType == nil {
+		return 0, errors.WithFields(
+			errors.New("field RepetitionType is nil"),
+			errors.Fields{
+				"index": idx,
+			})
+	}
+
+	if *s.RepetitionType != parquet.FieldRepetitionType_REQUIRED {
+		dLevel++
+	}
+
+	if *s.RepetitionType == parquet.FieldRepetitionType_REPEATED {
+		rLevel++
+	}
+
+	c.element = s
+	c.maxR = rLevel
+	c.maxD = dLevel
+	c.rep = *s.RepetitionType
+	c.name = s.Name
+
+	if name == "" {
+		c.flatName = s.Name
+	} else {
+		c.flatName = name + "." + s.Name
+	}
+
+	c.data, err = datastore.GetValuesStore(s)
+	if err != nil {
+		return 0, err
+	}
+
+	return idx + 1, nil
 }
 
 func (c *Column) buildElement() *parquet.SchemaElement {

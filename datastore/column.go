@@ -8,37 +8,27 @@ import (
 // parquetColumn is to convert a store to a parquet.SchemaElement.
 type parquetColumn interface {
 	ParquetType() parquet.Type
-	repetitionType() parquet.FieldRepetitionType
-	params() *ColumnParameters
+	RepetitionType() parquet.FieldRepetitionType
+	Params() (*ColumnParameters, error)
 }
 
-type TypedColumnStore interface {
+type typedColumnStore interface {
 	parquetColumn
 
-	reset(repetitionType parquet.FieldRepetitionType)
+	Reset(repetitionType parquet.FieldRepetitionType)
 
 	// Min and Max in parquet byte
-	maxValue() []byte
-	minValue() []byte
+	MaxValue() []byte
+	MinValue() []byte
 
 	// Should extract the value, turn it into an array and check for min and max on all values in this
-	getValues(v interface{}) ([]interface{}, error)
-	sizeOf(v interface{}) int
+	GetValues(v interface{}) ([]interface{}, error)
+	SizeOf(v interface{}) int
 
 	// the tricky append. this is a way of creating new "typed" array. the first interface is nil or an []T (T is the type,
 	// not the interface) and value is from that type. the result should be always []T (array of that type)
 	// exactly like the builtin append
-	append(arrayIn interface{}, value interface{}) interface{}
-}
-
-// ColumnParameters contains common parameters related to a column.
-type ColumnParameters struct {
-	LogicalType   *parquet.LogicalType
-	ConvertedType *parquet.ConvertedType
-	TypeLength    *int32
-	FieldID       *int32
-	Scale         *int32
-	Precision     *int32
+	Append(arrayIn, value interface{}) interface{}
 }
 
 // ColumnStore is the read/write implementation for a column.
@@ -47,7 +37,7 @@ type ColumnParameters struct {
 // heuristics.
 // It also ensures the correct decoding of column data to be read.
 type ColumnStore struct {
-	TypedColumnStore
+	typedColumnStore
 
 	repTyp parquet.FieldRepetitionType
 
@@ -56,10 +46,22 @@ type ColumnStore struct {
 	DefinitionLevels *encoding.PackedArray
 	RepetitionLevels *encoding.PackedArray
 
-	enc     parquet.Encoding
-	readPos int
+	encoding parquet.Encoding
+	readPos  int
 
 	allowDict bool
 
-	skipped bool
+	Skipped bool
+}
+
+func newColumnStore(typed typedColumnStore, encoding parquet.Encoding, allowDict bool) *ColumnStore {
+	return &ColumnStore{
+		typedColumnStore: typed,
+		encoding:         encoding,
+		allowDict:        allowDict,
+	}
+}
+
+func newPlainColumnStore(typed typedColumnStore) *ColumnStore {
+	return newColumnStore(typed, parquet.Encoding_PLAIN, true)
 }

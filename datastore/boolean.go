@@ -6,44 +6,46 @@ import (
 )
 
 type BooleanStore struct {
-	repTyp parquet.FieldRepetitionType
-	*ColumnParameters
+	valueStore
 }
 
-func (s *BooleanStore) params() (*ColumnParameters, error) {
-	if s.ColumnParameters == nil {
-		return nil, errors.New("ColumnParameters is nil")
+// NewBooleanStore creates new column store to store boolean values.
+func NewBooleanStore(enc parquet.Encoding, params *ColumnParameters) (*ColumnStore, error) {
+	switch enc { //nolint:exhaustive
+	case parquet.Encoding_PLAIN, parquet.Encoding_RLE:
+	default:
+		return nil, errors.WithFields(
+			errors.New("encoding not supported on boolean type"),
+			errors.Fields{
+				"encoding": enc.String(),
+			})
 	}
 
-	return s.ColumnParameters, nil
+	return newColumnStore(&BooleanStore{valueStore: valueStore{ColumnParameters: params}}, enc, false), nil
 }
 
 func (s *BooleanStore) ParquetType() parquet.Type {
 	return parquet.Type_BOOLEAN
 }
 
-func (s *BooleanStore) repetitionType() parquet.FieldRepetitionType {
-	return s.repTyp
-}
-
-func (s *BooleanStore) reset(repetitionType parquet.FieldRepetitionType) {
+func (s *BooleanStore) Reset(repetitionType parquet.FieldRepetitionType) {
 	s.repTyp = repetitionType
 }
 
-func (s *BooleanStore) maxValue() []byte {
+func (s *BooleanStore) MinValue() []byte {
 	return nil
 }
 
-func (s *BooleanStore) minValue() []byte {
+func (s *BooleanStore) MaxValue() []byte {
 	return nil
 }
 
-func (s *BooleanStore) sizeOf(v interface{}) int {
+func (s *BooleanStore) SizeOf(v interface{}) int {
 	// Use zero size to make sure we never use dictionary on this.
 	return 0
 }
 
-func (s *BooleanStore) getValues(v interface{}) ([]interface{}, error) {
+func (s *BooleanStore) GetValues(v interface{}) ([]interface{}, error) {
 	var values []interface{}
 
 	switch typed := v.(type) {
@@ -72,7 +74,7 @@ func (s *BooleanStore) getValues(v interface{}) ([]interface{}, error) {
 	return values, nil
 }
 
-func (s *BooleanStore) append(arrayIn interface{}, value interface{}) interface{} {
+func (s *BooleanStore) Append(arrayIn, value interface{}) interface{} {
 	if arrayIn == nil {
 		arrayIn = make([]bool, 0, 1)
 	}

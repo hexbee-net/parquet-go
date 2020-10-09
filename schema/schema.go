@@ -47,7 +47,6 @@ type Writer interface {
 	DataSize() int64
 }
 
-
 type Schema struct {
 	schemaDef      *definition.Schema
 	Root           *Column
