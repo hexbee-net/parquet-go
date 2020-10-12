@@ -6,6 +6,7 @@ import (
 
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
+	"github.com/hexbee-net/parquet/schema"
 )
 
 const sizeFloat = 4
@@ -19,7 +20,7 @@ type FloatStore struct {
 // NewFloatStore creates a new column store to store float (float32) values. If allowDict is true,
 // then using a dictionary is considered by the column store depending on its heuristics.
 // If allowDict is false, a dictionary will never be used to encode the data.
-func NewFloatStore(enc parquet.Encoding, allowDict bool, params *ColumnParameters) (*ColumnStore, error) {
+func NewFloatStore(enc parquet.Encoding, allowDict bool, params *schema.ColumnParameters) (*ColumnStore, error) {
 	switch enc { //nolint:exhaustive
 	case parquet.Encoding_PLAIN:
 	default:

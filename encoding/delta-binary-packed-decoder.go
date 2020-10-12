@@ -141,7 +141,7 @@ type deltaBinaryPackDecoder struct {
 
 	blockSize                int32
 	miniBlockCount           int32
-	valuesCount              int32
+	ValuesCount              int32
 	miniBlockValueCount      int32
 	miniBlockBitWidth        []uint8
 	currentMiniBlock         int32
@@ -177,11 +177,11 @@ func (d *deltaBinaryPackDecoder) readBlockHeader() (err error) {
 		return errors.Errorf("invalid mini block value count, it can't be zero")
 	}
 
-	if d.valuesCount, err = readUVariant32(d.r); err != nil {
+	if d.ValuesCount, err = readUVariant32(d.r); err != nil {
 		return errors.Wrapf(err, "failed to read total value count")
 	}
 
-	if d.valuesCount < 0 {
+	if d.ValuesCount < 0 {
 		return errors.New("invalid total value count")
 	}
 
@@ -213,7 +213,7 @@ func (d *deltaBinaryPackDecoder) readMiniBlockHeader() error {
 }
 
 func (d *deltaBinaryPackDecoder) next() (err error) {
-	if d.position >= d.valuesCount {
+	if d.position >= d.ValuesCount {
 		// No value left in the buffer
 		return io.EOF
 	}
@@ -267,7 +267,7 @@ func (d *deltaBinaryPackDecoder) advanceBlock() error {
 }
 
 func (d *deltaBinaryPackDecoder) readPadding(w int32) error {
-	if d.position+8 >= d.valuesCount {
+	if d.position+8 >= d.ValuesCount {
 		//  current block
 		l := (d.miniBlockValueCount/8)*w - d.miniBlockPosition
 		if l < 0 {

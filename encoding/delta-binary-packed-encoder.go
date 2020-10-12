@@ -22,6 +22,13 @@ type DeltaBinaryPackEncoder32 struct {
 	previousValue int32
 }
 
+func NewDeltaBinaryPackEncoder32(blockSize int, miniBlockCount int) DeltaBinaryPackEncoder32 {
+	return DeltaBinaryPackEncoder32{deltaBinaryPackEncoder: deltaBinaryPackEncoder{
+		blockSize:      blockSize,
+		miniBlockCount: miniBlockCount,
+	}}
+}
+
 func (e *DeltaBinaryPackEncoder32) Init(writer io.Writer) error {
 	e.checkDeltasLength = func() error {
 		if len(e.deltas) > 0 {

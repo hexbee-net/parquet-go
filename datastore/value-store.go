@@ -3,26 +3,15 @@ package datastore
 import (
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
+	"github.com/hexbee-net/parquet/schema"
 )
 
-// ColumnParameters contains common parameters related to a column.
-type ColumnParameters struct {
-	LogicalType   *parquet.LogicalType
-	ConvertedType *parquet.ConvertedType
-	TypeLength    *int32
-	FieldID       *int32
-	Scale         *int32
-	Precision     *int32
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-
 type valueStore struct {
-	*ColumnParameters
+	*schema.ColumnParameters
 	repTyp parquet.FieldRepetitionType
 }
 
-func (s *valueStore) Params() (*ColumnParameters, error) {
+func (s *valueStore) Params() (*schema.ColumnParameters, error) {
 	if s.ColumnParameters == nil {
 		return nil, errors.New("missing ColumnParameters")
 	}
@@ -35,7 +24,7 @@ func (s *valueStore) RepetitionType() parquet.FieldRepetitionType {
 }
 
 func GetValuesStore(typ *parquet.SchemaElement) (*ColumnStore, error) {
-	params := &ColumnParameters{
+	params := &schema.ColumnParameters{
 		LogicalType:   typ.LogicalType,
 		ConvertedType: typ.ConvertedType,
 		TypeLength:    typ.TypeLength,
@@ -55,9 +44,8 @@ func GetValuesStore(typ *parquet.SchemaElement) (*ColumnStore, error) {
 				errors.Fields{
 					"type": typ.Type.String(),
 				})
-		} else {
-			return newPlainColumnStore(&ByteArrayStore{valueStore: valueStore{ColumnParameters: params}}), nil
 		}
+		return newPlainColumnStore(&ByteArrayStore{valueStore: valueStore{ColumnParameters: params}}), nil
 
 	case parquet.Type_FLOAT:
 		return newPlainColumnStore(&FloatStore{valueStore: valueStore{ColumnParameters: params}}), nil
@@ -78,4 +66,47 @@ func GetValuesStore(typ *parquet.SchemaElement) (*ColumnStore, error) {
 				"type": typ.Type.String(),
 			})
 	}
+}
+
+func GetColumnStore(elem *parquet.SchemaElement, params *schema.ColumnParameters) (colStore *ColumnStore, err error) {
+	if elem.Type == nil {
+		return nil, nil
+	}
+
+	typ := elem.GetType()
+
+	switch typ { //nolint:exhaustive // supported types
+	case parquet.Type_BYTE_ARRAY:
+		colStore, err = NewByteArrayStore(parquet.Encoding_PLAIN, true, params)
+	case parquet.Type_FLOAT:
+		colStore, err = NewFloatStore(parquet.Encoding_PLAIN, true, params)
+	case parquet.Type_DOUBLE:
+		colStore, err = NewDoubleStore(parquet.Encoding_PLAIN, true, params)
+	case parquet.Type_BOOLEAN:
+		colStore, err = NewBooleanStore(parquet.Encoding_PLAIN, params)
+	case parquet.Type_INT32:
+		colStore, err = NewInt32Store(parquet.Encoding_PLAIN, true, params)
+	case parquet.Type_INT64:
+		colStore, err = NewInt64Store(parquet.Encoding_PLAIN, true, params)
+	case parquet.Type_INT96:
+		colStore, err = NewInt96Store(parquet.Encoding_PLAIN, true, params)
+	case parquet.Type_FIXED_LEN_BYTE_ARRAY:
+		colStore, err = NewFixedByteArrayStore(parquet.Encoding_PLAIN, true, params)
+	default:
+		return nil, errors.WithFields(
+			errors.New("type not supported by column store"),
+			errors.Fields{
+				"type": typ.String(),
+			})
+	}
+
+	if err != nil {
+		return nil, errors.WithFields(
+			errors.Wrap(err, "failed to create column store"),
+			errors.Fields{
+				"type": typ.String(),
+			})
+	}
+
+	return colStore, nil
 }

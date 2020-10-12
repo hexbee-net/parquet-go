@@ -5,6 +5,7 @@ import (
 
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
+	"github.com/hexbee-net/parquet/schema"
 )
 
 const sizeInt96 = 12
@@ -16,7 +17,7 @@ type Int96Store struct {
 // NewInt96Store creates a new column store to store int96 values. If allowDict is true,
 // then using a dictionary is considered by the column store depending on its heuristics.
 // If allowDict is false, a dictionary will never be used to encode the data.
-func NewInt96Store(enc parquet.Encoding, allowDict bool, params *ColumnParameters) (*ColumnStore, error) {
+func NewInt96Store(enc parquet.Encoding, allowDict bool, params *schema.ColumnParameters) (*ColumnStore, error) {
 	switch enc { //nolint:exhaustive
 	case parquet.Encoding_PLAIN:
 	default:
@@ -35,18 +36,6 @@ func NewInt96Store(enc parquet.Encoding, allowDict bool, params *ColumnParameter
 
 func (s *Int96Store) ParquetType() parquet.Type {
 	return parquet.Type_INT96
-}
-
-func (s *Int96Store) Reset(repetitionType parquet.FieldRepetitionType) {
-	panic("implement me")
-}
-
-func (s *Int96Store) MinValue() []byte {
-	panic("implement me")
-}
-
-func (s *Int96Store) MaxValue() []byte {
-	panic("implement me")
 }
 
 func (s *Int96Store) SizeOf(v interface{}) int {

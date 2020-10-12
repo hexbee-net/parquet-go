@@ -12,12 +12,12 @@ import (
 // Encoder /////////////////////////////
 
 type Int32PlainEncoder struct {
-	Writer   io.Writer
+	writer   io.Writer
 	Unsigned bool
 }
 
 func (e *Int32PlainEncoder) Init(writer io.Writer) error {
-	e.Writer = writer
+	e.writer = writer
 	return nil
 }
 
@@ -34,7 +34,7 @@ func (e *Int32PlainEncoder) EncodeValues(values []interface{}) error {
 		}
 	}
 
-	return binary.Write(e.Writer, binary.LittleEndian, d)
+	return binary.Write(e.writer, binary.LittleEndian, d)
 }
 
 func (e *Int32PlainEncoder) Close() error {
@@ -44,12 +44,12 @@ func (e *Int32PlainEncoder) Close() error {
 // Decoder /////////////////////////////
 
 type Int32PlainDecoder struct {
-	Reader   io.Reader
+	reader   io.Reader
 	Unsigned bool
 }
 
 func (d *Int32PlainDecoder) Init(reader io.Reader) error {
-	d.Reader = reader
+	d.reader = reader
 	return nil
 }
 
@@ -57,7 +57,7 @@ func (d *Int32PlainDecoder) DecodeValues(dest []interface{}) (count int, err err
 	var n int32
 
 	for count = range dest {
-		if err := binary.Read(d.Reader, binary.LittleEndian, &n); err != nil {
+		if err := binary.Read(d.reader, binary.LittleEndian, &n); err != nil {
 			return count, err
 		}
 

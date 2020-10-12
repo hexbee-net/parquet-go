@@ -2,28 +2,59 @@ package types
 
 import (
 	"io"
+	"math/bits"
 
 	"github.com/hexbee-net/errors"
+	"github.com/hexbee-net/parquet/datastore"
 	"github.com/hexbee-net/parquet/encoding"
 )
 
 // Encoder /////////////////////////////
 
 type DictEncoder struct {
-	//dictStore
-	w io.Writer
-}
-
-func (e *DictEncoder) Close() error {
-	panic("implement me")
+	datastore.DictStore
+	writer io.Writer
 }
 
 func (e *DictEncoder) Init(writer io.Writer) error {
-	panic("implement me")
+	e.writer = writer
+	e.DictStore.Init()
+
+	return nil
 }
 
 func (e *DictEncoder) EncodeValues(values []interface{}) error {
-	panic("implement me")
+	for i := range values {
+		e.AddValue(values[i], 0) // size is not important here
+	}
+
+	return nil
+}
+
+func (e *DictEncoder) Close() error {
+	v := len(e.Values)
+	if v == 0 { // empty dictionary?
+		return errors.New("empty dictionary nothing to write")
+	}
+
+	w := bits.Len(uint(v))
+
+	// first write the bitLength in a byte
+	if err := writeFull(e.writer, []byte{byte(w)}); err != nil {
+		return err
+	}
+
+	enc := encoding.NewHybridEncoder(w)
+
+	if err := enc.Init(e.writer); err != nil {
+		return err
+	}
+
+	if err := enc.Encode(e.Data); err != nil {
+		return err
+	}
+
+	return enc.Close()
 }
 
 // Decoder /////////////////////////////
@@ -51,7 +82,7 @@ func (d *DictDecoder) Init(reader io.Reader) error {
 	}
 
 	if w >= 0 {
-		d.keys = encoding.NewHybridDecoder(w)
+		d.keys = encoding.NewHybridDecoder(w, false)
 		return d.keys.Init(reader)
 	}
 

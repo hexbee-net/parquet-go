@@ -3,6 +3,7 @@ package datastore
 import (
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
+	"github.com/hexbee-net/parquet/schema"
 )
 
 type ByteArrayStore struct {
@@ -14,7 +15,7 @@ type ByteArrayStore struct {
 // NewByteArrayStore creates a new column store to store byte arrays. If allowDict is true,
 // then using a dictionary is considered by the column store depending on its heuristics.
 // If allowDict is false, a dictionary will never be used to encode the data.
-func NewByteArrayStore(enc parquet.Encoding, allowDict bool, params *ColumnParameters) (*ColumnStore, error) {
+func NewByteArrayStore(enc parquet.Encoding, allowDict bool, params *schema.ColumnParameters) (*ColumnStore, error) {
 	switch enc { //nolint:exhaustive
 	case parquet.Encoding_PLAIN, parquet.Encoding_DELTA_LENGTH_BYTE_ARRAY, parquet.Encoding_DELTA_BYTE_ARRAY:
 	default:
@@ -31,7 +32,7 @@ func NewByteArrayStore(enc parquet.Encoding, allowDict bool, params *ColumnParam
 // NewFixedByteArrayStore creates a new column store to store fixed size byte arrays. If allowDict is true,
 // then using a dictionary is considered by the column store depending on its heuristics.
 // If allowDict is false, a dictionary will never be used to encode the data.
-func NewFixedByteArrayStore(enc parquet.Encoding, allowDict bool, params *ColumnParameters) (*ColumnStore, error) {
+func NewFixedByteArrayStore(enc parquet.Encoding, allowDict bool, params *schema.ColumnParameters) (*ColumnStore, error) {
 	switch enc { //nolint:exhaustive
 	case parquet.Encoding_PLAIN, parquet.Encoding_DELTA_LENGTH_BYTE_ARRAY, parquet.Encoding_DELTA_BYTE_ARRAY:
 	default:

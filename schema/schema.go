@@ -1,9 +1,10 @@
 package schema
 
 import (
+	"strings"
+
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
-	"github.com/hexbee-net/parquet/schema/definition"
 )
 
 // schemaCommon contains methods shared by FileReader and FileWriter
@@ -17,8 +18,8 @@ type schemaCommon interface {
 	GetColumnByName(path string) *Column
 
 	// GetSchemaDefinition returns the schema definition.
-	GetSchemaDefinition() *definition.Schema
-	SetSchemaDefinition(*definition.Schema) error
+	GetSchemaDefinition() *SchemaDefinition
+	SetSchemaDefinition(*SchemaDefinition) error
 
 	// Internal functions
 	RowGroupNumRecords() int64
@@ -48,55 +49,11 @@ type Writer interface {
 }
 
 type Schema struct {
-	schemaDef      *definition.Schema
+	schemaDef      *SchemaDefinition
 	Root           *Column
 	numRecords     int64
 	readOnly       bool
 	selectedColumn []string // selected columns in reading. Empty means all the columns.
-}
-
-func (s *Schema) Columns() []*Column {
-	panic("implement me")
-}
-
-func (s *Schema) GetColumnByName(path string) *Column {
-	panic("implement me")
-}
-
-func (s *Schema) GetSchemaDefinition() *definition.Schema {
-	panic("implement me")
-}
-
-func (s *Schema) SetSchemaDefinition(schema *definition.Schema) error {
-	panic("implement me")
-}
-
-func (s *Schema) RowGroupNumRecords() int64 {
-	panic("implement me")
-}
-
-func (s *Schema) ResetData() {
-	panic("implement me")
-}
-
-func (s *Schema) GetSchemaArray() []*parquet.SchemaElement {
-	panic("implement me")
-}
-
-func (s *Schema) SetNumRecords(i int64) {
-	panic("implement me")
-}
-
-func (s *Schema) GetData() (map[string]interface{}, error) {
-	panic("implement me")
-}
-
-func (s *Schema) SetSelectedColumns(selected ...string) {
-	panic("implement me")
-}
-
-func (s *Schema) IsSelected(col string) bool {
-	panic("implement me")
 }
 
 func LoadSchema(schema []*parquet.SchemaElement) (s *Schema, err error) {
@@ -149,6 +106,121 @@ func LoadSchema(schema []*parquet.SchemaElement) (s *Schema, err error) {
 	return s, nil
 }
 
+func (s *Schema) Columns() []*Column {
+	var ret []*Column
+	var fn func([]*Column)
+
+	fn = func(columns []*Column) {
+		for i := range columns {
+			if columns[i].data != nil {
+				ret = append(ret, columns[i])
+			} else {
+				fn(columns[i].children)
+			}
+		}
+	}
+
+	s.ensureRoot()
+	fn(s.Root.children)
+
+	return ret
+}
+
+func (s *Schema) GetColumnByName(path string) *Column {
+	data := s.Columns()
+	for i := range data {
+		if data[i].flatName == path {
+			return data[i]
+		}
+	}
+
+	return nil
+}
+
+func (s *Schema) GetSchemaDefinition() *SchemaDefinition {
+	//TODO: Check what's going on here
+	def, err := ParseSchemaDefinition(s.schemaDef.String())
+	if err != nil {
+		panic(err)
+	}
+
+	return def
+}
+
+func (s *Schema) SetSchemaDefinition(schemaDefinition *SchemaDefinition) error {
+	s.schemaDef = schemaDefinition
+
+	root, err := s.schemaDef.RootColumn.CreateColumn()
+	if err != nil {
+		return err
+	}
+
+	s.Root = root
+
+	for _, c := range s.Root.children {
+		recursiveFix(c, "", 0, 0)
+	}
+
+	return nil
+}
+
+//TODO: rename to GetNumRecords
+func (s *Schema) RowGroupNumRecords() int64 {
+	return s.numRecords
+}
+
+func (s *Schema) SetNumRecords(n int64) {
+	s.numRecords = n
+}
+
+func (s *Schema) ResetData() {
+	data := s.Columns()
+	for i := range data {
+		data[i].data.Reset(data[i].rep, data[i].maxR, data[i].maxD)
+	}
+
+	s.numRecords = 0
+}
+
+func (s *Schema) GetSchemaArray() []*parquet.SchemaElement {
+	panic("implement me")
+}
+
+func (s *Schema) GetData() (map[string]interface{}, error) {
+	d, _, err := s.Root.GetData()
+	if err != nil {
+		return nil, err
+	}
+
+	if d.(map[string]interface{}) == nil {
+		d = make(map[string]interface{}) // just non nil root doc
+	}
+
+	return d.(map[string]interface{}), nil
+}
+
+func (s *Schema) SetSelectedColumns(selected ...string) {
+	s.selectedColumn = selected
+}
+
+func (s *Schema) IsSelected(colPath string) bool {
+	if len(s.selectedColumn) == 0 {
+		return true
+	}
+
+	for _, pattern := range s.selectedColumn {
+		if pattern == colPath {
+			return true
+		}
+
+		if strings.HasPrefix(colPath, pattern+".") {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *Schema) sortIndex() {
 	var fn func(c *[]*Column)
 
@@ -186,5 +258,29 @@ func (s *Schema) ensureRoot() {
 			maxD:     0,
 			element:  nil,
 		}
+	}
+}
+
+func recursiveFix(col *Column, path string, maxR uint16, maxD uint16) {
+	if col.rep != parquet.FieldRepetitionType_REQUIRED {
+		maxD++
+	}
+	if col.rep == parquet.FieldRepetitionType_REPEATED {
+		maxR++
+	}
+
+	col.maxR = maxR
+	col.maxD = maxD
+	col.flatName = path + "." + col.name
+	if path == "" {
+		col.flatName = col.name
+	}
+	if col.data != nil {
+		col.data.Reset(col.rep, col.maxR, col.maxD)
+		return
+	}
+
+	for i := range col.children {
+		recursiveFix(col.children[i], col.flatName, maxR, maxD)
 	}
 }

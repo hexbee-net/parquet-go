@@ -3,6 +3,7 @@ package datastore
 import (
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
+	"github.com/hexbee-net/parquet/schema"
 )
 
 type BooleanStore struct {
@@ -10,7 +11,7 @@ type BooleanStore struct {
 }
 
 // NewBooleanStore creates new column store to store boolean values.
-func NewBooleanStore(enc parquet.Encoding, params *ColumnParameters) (*ColumnStore, error) {
+func NewBooleanStore(enc parquet.Encoding, params *schema.ColumnParameters) (*ColumnStore, error) {
 	switch enc { //nolint:exhaustive
 	case parquet.Encoding_PLAIN, parquet.Encoding_RLE:
 	default:
@@ -40,7 +41,7 @@ func (s *BooleanStore) MaxValue() []byte {
 	return nil
 }
 
-func (s *BooleanStore) SizeOf(v interface{}) int {
+func (s *BooleanStore) SizeOf(_ interface{}) int {
 	// Use zero size to make sure we never use dictionary on this.
 	return 0
 }

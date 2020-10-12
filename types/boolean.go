@@ -11,12 +11,12 @@ import (
 // Encoder /////////////////////////////
 
 type BooleanPlainEncoder struct {
-	w    io.Writer
-	data *encoding.PackedArray
+	writer io.Writer
+	data   *encoding.PackedArray
 }
 
 func (e *BooleanPlainEncoder) Init(writer io.Writer) error {
-	e.w = writer
+	e.writer = writer
 
 	e.data = &encoding.PackedArray{}
 	e.data.Reset(1)
@@ -39,18 +39,18 @@ func (e *BooleanPlainEncoder) EncodeValues(values []interface{}) error {
 
 func (e *BooleanPlainEncoder) Close() error {
 	e.data.Flush()
-	return e.data.Write(e.w)
+	return e.data.Write(e.writer)
 }
 
 // Decoder /////////////////////////////
 
 type BooleanPlainDecoder struct {
-	r    io.Reader
-	left []bool
+	reader io.Reader
+	left   []bool
 }
 
 func (d *BooleanPlainDecoder) Init(reader io.Reader) error {
-	d.r = reader
+	d.reader = reader
 	d.left = nil
 
 	return nil
@@ -71,7 +71,7 @@ func (d *BooleanPlainDecoder) DecodeValues(dest []interface{}) (count int, err e
 	buf := make([]byte, 1)
 
 	for i := start; i < len(dest); i += 8 {
-		if _, err := io.ReadFull(d.r, buf); err != nil {
+		if _, err := io.ReadFull(d.reader, buf); err != nil {
 			return i, err
 		}
 
@@ -165,7 +165,7 @@ type BooleanRLEDecoder struct {
 }
 
 func (d *BooleanRLEDecoder) Init(reader io.Reader) error {
-	d.decoder = encoding.NewHybridDecoder(1)
+	d.decoder = encoding.NewHybridDecoder(1, false)
 
 	return d.decoder.InitSize(reader)
 }

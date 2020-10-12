@@ -4,7 +4,6 @@ import (
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/datastore"
 	"github.com/hexbee-net/parquet/parquet"
-	"github.com/hexbee-net/parquet/schema/definition"
 )
 
 // ColumnParameters contains common parameters related to a column.
@@ -42,8 +41,8 @@ type Column struct {
 }
 
 // AsColumnDefinition creates a new column definition from the provided column.
-func (c *Column) AsColumnDefinition() *definition.Column {
-	col := &definition.Column{
+func (c *Column) AsColumnDefinition() *ColumnDefinition {
+	col := &ColumnDefinition{
 		SchemaElement: c.Element(),
 	}
 
@@ -130,6 +129,37 @@ func (c *Column) ChildrenCount() (int, error) {
 
 func (c *Column) SetSkipped(b bool) {
 	c.data.Skipped = b
+}
+
+func (c *Column) GetData() (interface{}, int32, error) {
+	if c.children != nil {
+		data, maxD, err := c.getNextData()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if c.rep != parquet.FieldRepetitionType_REPEATED || data == nil {
+			return data, maxD, nil
+		}
+
+		ret := []map[string]interface{}{data}
+		for {
+			rl, _, last := c.getFirstRDLevel()
+			if last || rl < int32(c.maxR) || rl == 0 {
+				// end of this object
+				return ret, maxD, nil
+			}
+
+			data, _, err := c.getNextData()
+			if err != nil {
+				return nil, maxD, err
+			}
+
+			ret = append(ret, data)
+		}
+	}
+
+	return c.data.Get(int32(c.maxD), int32(c.maxR))
 }
 
 func (c *Column) readGroupSchema(schema []*parquet.SchemaElement, name string, idx int, dLevel, rLevel uint16) (newIndex int, err error) {
@@ -298,4 +328,73 @@ func (c *Column) buildElement() *parquet.SchemaElement {
 	}
 
 	return elem
+}
+
+func (c *Column) getNextData() (map[string]interface{}, int32, error) {
+	if c.children == nil {
+		return nil, 0, errors.New("getNextData is not possible on non group node")
+	}
+
+	ret := make(map[string]interface{})
+	notNil := 0
+	var maxD int32
+
+	for i := range c.children {
+		data, dl, err := c.children[i].GetData()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if dl > maxD {
+			maxD = dl
+		}
+
+		// https://golang.org/doc/faq#nil_error
+		if m, ok := data.(map[string]interface{}); ok && m == nil {
+			data = nil
+		}
+
+		// if the data is not nil, then its ok, but if its nil, we need to know in which definition level is this nil is.
+		// if its exactly one below max definition level, then the parent is there
+		if data != nil {
+			ret[c.children[i].name] = data
+			notNil++
+		}
+
+		var diff int32
+		if c.children[i].rep != parquet.FieldRepetitionType_REQUIRED {
+			diff++
+		}
+
+		if dl == int32(c.children[i].maxD)-diff {
+			notNil++
+		}
+	}
+
+	if notNil == 0 {
+		return nil, maxD, nil
+	}
+
+	return ret, int32(c.maxD), nil
+}
+
+func (c *Column) getFirstRDLevel() (rLevel int32, dLevel int32, last bool) {
+	if c.data != nil {
+		return c.data.GetRDLevelAt(-1)
+	}
+
+	// there should be at lease 1 child,
+	for i := range c.children {
+		rLevel, dLevel, last = c.children[i].getFirstRDLevel()
+		if last {
+			return rLevel, dLevel, last
+		}
+
+		// if this value is not nil, dLevel less than this level is not interesting
+		if dLevel == int32(c.children[i].maxD) {
+			return rLevel, dLevel, last
+		}
+	}
+
+	return -1, -1, false
 }

@@ -74,7 +74,7 @@ func (a *PackedArray) AppendArray(other *PackedArray) error {
 	}
 
 	for i := 0; i < other.count; i++ {
-		v, err := other.at(i)
+		v, err := other.At(i)
 		if err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ func (a *PackedArray) Write(writer io.Writer) error {
 	return writeFull(writer, a.data)
 }
 
-func (a *PackedArray) at(pos int) (int32, error) {
+func (a *PackedArray) At(pos int) (int32, error) {
 	if pos < 0 || pos >= a.count {
 		return 0, errors.New("out of range")
 	}
@@ -108,4 +108,8 @@ func (a *PackedArray) at(pos int) (int32, error) {
 	buf := a.reader(a.data[block : block+a.bw])
 
 	return buf[idx], nil
+}
+
+func (a *PackedArray) Count() int {
+	return a.count
 }
