@@ -9,7 +9,6 @@ import (
 	"github.com/hexbee-net/parquet/encoding"
 	"github.com/hexbee-net/parquet/parquet"
 	"github.com/hexbee-net/parquet/schema"
-	"github.com/hexbee-net/parquet/source"
 	"github.com/hexbee-net/parquet/types"
 )
 
@@ -51,7 +50,7 @@ func SkipChunk(reader io.Seeker, col *schema.Column, chunk *parquet.ColumnChunk)
 	return nil
 }
 
-func (r *ChunkReader) ReadChunk(src source.Reader, col *schema.Column, chunk *parquet.ColumnChunk) ([]PageReader, error) {
+func (r *ChunkReader) ReadChunk(src io.ReadSeeker, col *schema.Column, chunk *parquet.ColumnChunk) ([]PageReader, error) {
 	if err := checkColumnChunk(chunk, col); err != nil {
 		return nil, err
 	}
@@ -100,6 +99,7 @@ func (r *ChunkReader) ReadChunk(src source.Reader, col *schema.Column, chunk *pa
 					"encoding": enc.String(),
 				})
 		}
+
 		dec := encoding.NewHybridDecoder(bits.Len16(col.MaxDefinitionLevel()), true)
 
 		return &levelDecoderWrapper{
@@ -127,8 +127,10 @@ func (r *ChunkReader) ReadChunk(src source.Reader, col *schema.Column, chunk *pa
 }
 
 func (r *ChunkReader) readPages(reader *offsetReader, col *schema.Column, chunkMeta *parquet.ColumnMetaData, dDecoder, rDecoder getLevelDecoderFn) ([]PageReader, error) {
-	var dictPage *dictPageReader
-	var pages []PageReader
+	var (
+		dictPage *dictPageReader
+		pages    []PageReader
+	)
 
 	for {
 		if chunkMeta.TotalCompressedSize-reader.Count() < 1 {
@@ -141,7 +143,8 @@ func (r *ChunkReader) readPages(reader *offsetReader, col *schema.Column, chunkM
 		}
 
 		var p PageReader
-		switch pageHeader.Type {
+
+		switch pageHeader.Type { //nolint:exhaustive // supported types only
 		case parquet.PageType_DICTIONARY_PAGE:
 			if dictPage != nil {
 				return nil, errors.New("there should be only one dictionary")
@@ -198,6 +201,7 @@ func (r *ChunkReader) readPages(reader *offsetReader, col *schema.Column, chunkM
 		var fn = func(typ parquet.Encoding) (types.ValuesDecoder, error) {
 			return getValuesDecoder(typ, col.Element(), dictValue)
 		}
+
 		if err := p.init(dDecoder, rDecoder, fn, r.compressors); err != nil {
 			return nil, err
 		}
@@ -205,6 +209,7 @@ func (r *ChunkReader) readPages(reader *offsetReader, col *schema.Column, chunkM
 		if err := p.read(reader, pageHeader, chunkMeta.Codec); err != nil {
 			return nil, err
 		}
+
 		pages = append(pages, p)
 	}
 

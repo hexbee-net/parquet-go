@@ -3,7 +3,6 @@ package datastore
 import (
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
-	"github.com/hexbee-net/parquet/schema"
 )
 
 type BooleanStore struct {
@@ -11,8 +10,8 @@ type BooleanStore struct {
 }
 
 // NewBooleanStore creates new column store to store boolean values.
-func NewBooleanStore(enc parquet.Encoding, params *schema.ColumnParameters) (*ColumnStore, error) {
-	switch enc { //nolint:exhaustive
+func NewBooleanStore(enc parquet.Encoding, params *ColumnParameters) (*ColumnStore, error) {
+	switch enc { //nolint:exhaustive // supported encoding only
 	case parquet.Encoding_PLAIN, parquet.Encoding_RLE:
 	default:
 		return nil, errors.WithFields(

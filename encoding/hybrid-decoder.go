@@ -67,7 +67,9 @@ func (d *HybridDecoder) InitSize(reader io.Reader) error {
 	return d.Init(io.LimitReader(reader, int64(size)))
 }
 
-func (d *HybridDecoder) Next() (next int32, err error) {
+func (d *HybridDecoder) Next() (int32, error) {
+	var next int32
+
 	// when the bit width is zero, it means we can only have infinite zero.
 	if d.bitWidth == 0 {
 		return 0, nil
@@ -78,7 +80,7 @@ func (d *HybridDecoder) Next() (next int32, err error) {
 	}
 
 	if d.rleCount == 0 && d.bpCount == 0 && d.bpRunPos == 0 {
-		if err = d.readRunHeader(); err != nil {
+		if err := d.readRunHeader(); err != nil {
 			return 0, err
 		}
 	}
@@ -90,11 +92,12 @@ func (d *HybridDecoder) Next() (next int32, err error) {
 
 	case d.bpCount > 0 || d.bpRunPos > 0:
 		if d.bpRunPos == 0 {
-			if err = d.readBitPackedRun(); err != nil {
+			if err := d.readBitPackedRun(); err != nil {
 				return 0, err
 			}
 			d.bpCount--
 		}
+
 		next = d.bpRun[d.bpRunPos]
 		d.bpRunPos = (d.bpRunPos + 1) % 8
 
@@ -102,7 +105,7 @@ func (d *HybridDecoder) Next() (next int32, err error) {
 		return 0, io.EOF
 	}
 
-	return next, err
+	return next, nil
 }
 
 func (d *HybridDecoder) readRunHeader() error {
@@ -119,6 +122,7 @@ func (d *HybridDecoder) readRunHeader() error {
 		if d.bpCount == 0 {
 			return errors.New("rle: empty bit-packed run")
 		}
+
 		d.bpRunPos = 0
 	} else {
 		d.rleCount = uint32(h >> 1)
@@ -127,6 +131,7 @@ func (d *HybridDecoder) readRunHeader() error {
 		}
 		return d.readRLERunValue()
 	}
+
 	return nil
 }
 
@@ -164,18 +169,18 @@ func (d *HybridDecoder) readRLERunValue() error {
 	return nil
 }
 
-func decodeRLEValue(bytes []byte) int32 {
-	switch len(bytes) {
-	case 0:
+func decodeRLEValue(value []byte) int32 {
+	switch len(value) {
+	case 0: //nolint:gomnd // the switch is on the size of the input
 		return 0
-	case 1:
-		return int32(bytes[0])
-	case 2:
-		return int32(bytes[0]) + int32(bytes[1])<<8
-	case 3:
-		return int32(bytes[0]) + int32(bytes[1])<<8 + int32(bytes[2])<<16
-	case 4:
-		return int32(bytes[0]) + int32(bytes[1])<<8 + int32(bytes[2])<<16 + int32(bytes[3])<<24
+	case 1: //nolint:gomnd // the switch is on the size of the input
+		return int32(value[0])
+	case 2: //nolint:gomnd // the switch is on the size of the input
+		return int32(value[0]) + int32(value[1])<<8
+	case 3: //nolint:gomnd // the switch is on the size of the input
+		return int32(value[0]) + int32(value[1])<<8 + int32(value[2])<<16
+	case 4: //nolint:gomnd // the switch is on the size of the input
+		return int32(value[0]) + int32(value[1])<<8 + int32(value[2])<<16 + int32(value[3])<<24
 	default:
 		panic("invalid argument")
 	}

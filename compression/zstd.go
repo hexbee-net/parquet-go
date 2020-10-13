@@ -13,6 +13,7 @@ type ZStd struct {
 
 func (c ZStd) CompressBlock(block []byte) ([]byte, error) {
 	buf := &bytes.Buffer{}
+
 	w, err := zstd.NewWriter(buf)
 	if err != nil {
 		return nil, err
@@ -31,6 +32,7 @@ func (c ZStd) CompressBlock(block []byte) ([]byte, error) {
 
 func (c ZStd) DecompressBlock(block []byte) ([]byte, error) {
 	buf := bytes.NewReader(block)
+
 	r, err := zstd.NewReader(buf)
 	if err != nil {
 		return nil, err

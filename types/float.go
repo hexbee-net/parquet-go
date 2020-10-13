@@ -1,4 +1,4 @@
-package types
+package types //nolint:dupl // it's cleaner to keep each type separate, even with duplication
 
 import (
 	"encoding/binary"

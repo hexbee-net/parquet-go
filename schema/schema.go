@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/hexbee-net/errors"
+	"github.com/hexbee-net/parquet/datastore"
 	"github.com/hexbee-net/parquet/parquet"
 )
 
@@ -74,7 +75,7 @@ func LoadSchema(schema []*parquet.SchemaElement) (s *Schema, err error) {
 			maxD:      0,
 			parent:    0,
 			element:   root,
-			params: &ColumnParameters{
+			params: &datastore.ColumnParameters{
 				LogicalType:   root.LogicalType,
 				ConvertedType: root.ConvertedType,
 				TypeLength:    root.TypeLength,
@@ -107,8 +108,10 @@ func LoadSchema(schema []*parquet.SchemaElement) (s *Schema, err error) {
 }
 
 func (s *Schema) Columns() []*Column {
-	var ret []*Column
-	var fn func([]*Column)
+	var (
+		ret []*Column
+		fn  func([]*Column)
+	)
 
 	fn = func(columns []*Column) {
 		for i := range columns {
@@ -164,7 +167,7 @@ func (s *Schema) SetSchemaDefinition(schemaDefinition *SchemaDefinition) error {
 	return nil
 }
 
-//TODO: rename to GetNumRecords
+//TODO: rename to GetNumRecords.
 func (s *Schema) RowGroupNumRecords() int64 {
 	return s.numRecords
 }
@@ -268,10 +271,11 @@ func (s *Schema) ensureRoot() {
 	}
 }
 
-func recursiveFix(col *Column, path string, maxR uint16, maxD uint16) {
+func recursiveFix(col *Column, path string, maxR, maxD uint16) {
 	if col.rep != parquet.FieldRepetitionType_REQUIRED {
 		maxD++
 	}
+
 	if col.rep == parquet.FieldRepetitionType_REPEATED {
 		maxR++
 	}
@@ -279,9 +283,11 @@ func recursiveFix(col *Column, path string, maxR uint16, maxD uint16) {
 	col.maxR = maxR
 	col.maxD = maxD
 	col.flatName = path + "." + col.name
+
 	if path == "" {
 		col.flatName = col.name
 	}
+
 	if col.data != nil {
 		col.data.Reset(col.rep, col.maxR, col.maxD)
 		return

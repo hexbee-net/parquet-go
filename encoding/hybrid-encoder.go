@@ -71,10 +71,12 @@ func (he *HybridEncoder) Close() error {
 
 	if he.original != nil {
 		data := he.w.(*bytes.Buffer).Bytes()
-		var size = uint32(len(data))
+		size := uint32(len(data))
+
 		if err := binary.Write(he.original, binary.LittleEndian, size); err != nil {
 			return err
 		}
+
 		return writeFull(he.original, data)
 	}
 
@@ -92,6 +94,7 @@ func (he *HybridEncoder) bpEncode() error {
 	if he.bitWidth == 0 {
 		return nil
 	}
+
 	l := he.data.count
 	if x := l % 8; x != 0 {
 		l += 8 - x

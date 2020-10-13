@@ -25,6 +25,7 @@ func decodeInt32(d encoding.Decoder, data []int32) error {
 		if err != nil {
 			return err
 		}
+
 		data[i] = u
 	}
 
@@ -53,12 +54,13 @@ func writeFull(w io.Writer, buf []byte) error {
 	return nil
 }
 
-// check the b2 into b1 to find the max prefix len
+// check the b2 into b1 to find the max prefix len.
 func prefix(b1, b2 []byte) int {
 	l := len(b1)
 	if l2 := len(b2); l > l2 {
 		l = l2
 	}
+
 	for i := 0; i < l; i++ {
 		if b1[i] != b2[i] {
 			return i

@@ -35,7 +35,7 @@ type page struct {
 	blockReader   blockReader
 }
 
-func (p *page) readPageBlock(in io.Reader, codec parquet.CompressionCodec, compressedSize int32, uncompressedSize int32) (io.Reader, error) {
+func (p *page) readPageBlock(in io.Reader, codec parquet.CompressionCodec, compressedSize, uncompressedSize int32) (io.Reader, error) {
 	if compressedSize < 0 || uncompressedSize < 0 {
 		return nil, errors.WithFields(
 			errors.New("invalid page data size"),

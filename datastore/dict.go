@@ -100,5 +100,6 @@ func fnvHashFunc(in []byte) interface{} {
 	if err := writeFull(hash, in); err != nil {
 		panic(err)
 	}
+
 	return hash.Sum64()
 }

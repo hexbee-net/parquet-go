@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	magic     = "PAR1"
-	magicLen  = len(magic)
-	footerLen = int64(4 + magicLen)
+	magic         = "PAR1"
+	magicLen      = len(magic)
+	footerLenSize = 4
+	footerLen     = int64(footerLenSize + magicLen)
 )
 
 // FileReader is used to read data from a parquet file.
@@ -53,7 +54,7 @@ func NewFileReader(r source.Reader, columns ...string) (*FileReader, error) {
 	s.SetSelectedColumns(columns...)
 
 	// Reset the reader to the beginning of the file
-	if _, err := r.Seek(4, io.SeekStart); err != nil {
+	if _, err := r.Seek(int64(magicLen), io.SeekStart); err != nil {
 		return nil, err
 	}
 
@@ -70,6 +71,7 @@ func (f *FileReader) CurrentRowGroup() *parquet.RowGroup {
 	if f == nil || f.meta == nil || f.meta.RowGroups == nil || f.rowGroupPosition-1 >= len(f.meta.RowGroups) {
 		return nil
 	}
+
 	return f.meta.RowGroups[f.rowGroupPosition-1]
 }
 
@@ -100,6 +102,7 @@ func (f *FileReader) NextRow() (map[string]interface{}, error) {
 	}
 
 	f.currentRecord++
+
 	return f.Reader.GetData()
 }
 
@@ -141,6 +144,7 @@ func (f *FileReader) advanceIfNeeded() error {
 			f.skipRowGroup = true
 			return err
 		}
+
 		f.currentRecord = 0
 		f.skipRowGroup = false
 	}
@@ -148,7 +152,7 @@ func (f *FileReader) advanceIfNeeded() error {
 	return nil
 }
 
-// readRowGroup read the next row group into memory
+// readRowGroup read the next row group into memory.
 func (f *FileReader) readRowGroup() error {
 	if len(f.meta.RowGroups) <= f.rowGroupPosition {
 		return io.EOF
@@ -170,6 +174,7 @@ func (f *FileReader) readRowGroup() error {
 			}
 
 			c.SetSkipped(true)
+
 			continue
 		}
 
@@ -186,16 +191,18 @@ func (f *FileReader) readRowGroup() error {
 	return nil
 }
 
-func readFileMetaData(r source.Reader) (*parquet.FileMetaData, error) {
+func readFileMetaData(r io.ReadSeeker) (*parquet.FileMetaData, error) {
 	buf := make([]byte, magicLen)
 
 	// read and validate magic header
 	if _, err := r.Seek(0, io.SeekStart); err != nil {
 		return nil, errors.Wrap(err, "failed to seek to file magic header")
 	}
+
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return nil, errors.Wrap(err, "failed to read file magic header failed")
 	}
+
 	if !bytes.Equal(buf, []byte(magic)) {
 		return nil, errors.New("invalid parquet file header")
 	}
@@ -204,21 +211,26 @@ func readFileMetaData(r source.Reader) (*parquet.FileMetaData, error) {
 	if _, err := r.Seek(int64(-magicLen), io.SeekEnd); err != nil {
 		return nil, errors.Wrap(err, "failed to seek to file magic footer")
 	}
+
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return nil, errors.Wrap(err, "failed to read file magic footer failed")
 	}
+
 	if !bytes.Equal(buf, []byte(magic)) {
 		return nil, errors.Errorf("invalid parquet file footer")
 	}
 
 	// read footer length
 	var fl int32
+
 	if _, err := r.Seek(-footerLen, io.SeekEnd); err != nil {
 		return nil, errors.Wrap(err, "failed to seek to footer length")
 	}
+
 	if err := binary.Read(r, binary.LittleEndian, &fl); err != nil {
 		return nil, errors.Wrap(err, "failed to read footer length")
 	}
+
 	if fl <= 0 {
 		return nil, errors.WithFields(
 			errors.New("invalid footer length"),
@@ -229,9 +241,11 @@ func readFileMetaData(r source.Reader) (*parquet.FileMetaData, error) {
 
 	// read file metadata
 	meta := &parquet.FileMetaData{}
+
 	if _, err := r.Seek(-footerLen-int64(fl), io.SeekEnd); err != nil {
 		return nil, errors.Wrap(err, "failed to seek to file meta data")
 	}
+
 	if err := readThrift(meta, io.LimitReader(r, int64(fl))); err != nil {
 		return nil, errors.Wrap(err, "failed to read file meta data")
 	}
@@ -257,6 +271,7 @@ func readPageData(col *schema.Column, pages []layout.PageReader) error {
 
 	for i := range pages {
 		data := make([]interface{}, pages[i].NumValues())
+
 		n, dl, rl, err := pages[i].ReadValues(data)
 		if err != nil {
 			return err
@@ -275,6 +290,7 @@ func readPageData(col *schema.Column, pages []layout.PageReader) error {
 		if err := s.RepetitionLevels.AppendArray(rl); err != nil {
 			return err
 		}
+
 		if err := s.DefinitionLevels.AppendArray(dl); err != nil {
 			return err
 		}
@@ -288,6 +304,7 @@ func readPageData(col *schema.Column, pages []layout.PageReader) error {
 
 func metaDataToMap(kvMetaData []*parquet.KeyValue) map[string]string {
 	data := make(map[string]string)
+
 	for _, kv := range kvMetaData {
 		if kv.Value != nil {
 			data[kv.Key] = *kv.Value

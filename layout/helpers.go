@@ -18,6 +18,7 @@ func readThrift(tr thriftReader, r io.Reader) error {
 	// bufio.Reader "can" reads more data ahead of time, which is a problem on this library
 	transport := &thrift.StreamTransport{Reader: r}
 	proto := thrift.NewTCompactProtocol(transport)
+
 	return tr.Read(proto)
 }
 
@@ -28,6 +29,7 @@ type thriftWriter interface {
 func writeThrift(tr thriftWriter, w io.Writer) error {
 	transport := &thrift.StreamTransport{Writer: w}
 	proto := thrift.NewTCompactProtocol(transport)
+
 	return tr.Write(proto)
 }
 
@@ -43,6 +45,7 @@ func (r *offsetReader) Read(p []byte) (int, error) {
 	n, err := r.inner.Read(p)
 	r.offset += int64(n)
 	r.count += int64(n)
+
 	return n, err
 }
 

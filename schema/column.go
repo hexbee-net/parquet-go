@@ -14,16 +14,6 @@ const (
 	mapParent
 )
 
-// ColumnParameters contains common parameters related to a column.
-type ColumnParameters struct {
-	LogicalType   *parquet.LogicalType
-	ConvertedType *parquet.ConvertedType
-	TypeLength    *int32
-	FieldID       *int32
-	Scale         *int32
-	Precision     *int32
-}
-
 type Column struct {
 	index    int
 	name     string
@@ -45,7 +35,7 @@ type Column struct {
 	// for the reader we should read this element from the meta, for the writer we need to build this element
 	element *parquet.SchemaElement
 
-	params *ColumnParameters
+	params *datastore.ColumnParameters
 }
 
 // AsColumnDefinition creates a new column definition from the provided column.
@@ -151,6 +141,7 @@ func (c *Column) GetData() (interface{}, int32, error) {
 		}
 
 		ret := []map[string]interface{}{data}
+
 		for {
 			rl, _, last := c.getFirstRDLevel()
 			if last || rl < int32(c.maxR) || rl == 0 {
@@ -345,6 +336,7 @@ func (c *Column) getNextData() (map[string]interface{}, int32, error) {
 
 	ret := make(map[string]interface{})
 	notNil := 0
+
 	var maxD int32
 
 	for i := range c.children {
@@ -386,7 +378,7 @@ func (c *Column) getNextData() (map[string]interface{}, int32, error) {
 	return ret, int32(c.maxD), nil
 }
 
-func (c *Column) getFirstRDLevel() (rLevel int32, dLevel int32, last bool) {
+func (c *Column) getFirstRDLevel() (rLevel, dLevel int32, last bool) {
 	if c.data != nil {
 		return c.data.GetRDLevelAt(-1)
 	}

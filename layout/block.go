@@ -14,7 +14,7 @@ type blockReader struct {
 	compressors map[parquet.CompressionCodec]compression.BlockCompressor
 }
 
-func (r *blockReader) readBlockData(in io.Reader, codec parquet.CompressionCodec, compressedSize int32, uncompressedSize int32) (io.Reader, error) {
+func (r *blockReader) readBlockData(in io.Reader, codec parquet.CompressionCodec, compressedSize, uncompressedSize int32) (io.Reader, error) {
 	buf, err := ioutil.ReadAll(io.LimitReader(in, int64(compressedSize)))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read block data")

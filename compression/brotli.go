@@ -1,4 +1,4 @@
-package compression
+package compression //nolint:dupl // it's easier to duplicate the algorithm wrappers
 
 import (
 	"bytes"

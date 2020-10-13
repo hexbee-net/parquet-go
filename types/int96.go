@@ -6,6 +6,8 @@ import (
 	"github.com/hexbee-net/errors"
 )
 
+const sizeInt96 = 12
+
 // Encoder /////////////////////////////
 
 type Int96PlainEncoder struct {
@@ -19,10 +21,11 @@ func (e Int96PlainEncoder) Init(writer io.Writer) error {
 }
 
 func (e Int96PlainEncoder) EncodeValues(values []interface{}) error {
-	data := make([]byte, len(values)*12)
+	data := make([]byte, len(values)*sizeInt96)
+
 	for j := range values {
-		i96 := values[j].([12]byte)
-		copy(data[j*12:], i96[:])
+		i96 := values[j].([sizeInt96]byte)
+		copy(data[j*sizeInt96:], i96[:])
 	}
 
 	return writeFull(e.writer, data)
@@ -48,18 +51,18 @@ func (d Int96PlainDecoder) DecodeValues(dest []interface{}) (int, error) {
 	idx := 0
 
 	for range dest {
-		var data [12]byte
+		var data [sizeInt96]byte
 
 		// this one is a little tricky do not use ReadFull here
 		n, err := d.reader.Read(data[:])
 
 		// make sure we handle the read data first then handle the error
-		if n == 12 {
+		if n == sizeInt96 {
 			dest[idx] = data
 			idx++
 		}
 
-		if err != nil && (n == 0 || n == 12) {
+		if err != nil && (n == 0 || n == sizeInt96) {
 			return idx, err
 		}
 

@@ -1,4 +1,4 @@
-package datastore
+package datastore //nolint:dupl // it's cleaner to keep each type separate, even with duplication
 
 import (
 	"encoding/binary"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
-	"github.com/hexbee-net/parquet/schema"
 )
 
 const sizeDouble = 8
@@ -20,8 +19,8 @@ type DoubleStore struct {
 // NewDoubleStore creates a new column store to store double (float64) values. If allowDict is true,
 // then using a dictionary is considered by the column store depending on its heuristics.
 // If allowDict is false, a dictionary will never be used to encode the data.
-func NewDoubleStore(enc parquet.Encoding, allowDict bool, params *schema.ColumnParameters) (*ColumnStore, error) {
-	switch enc { //nolint:exhaustive
+func NewDoubleStore(enc parquet.Encoding, allowDict bool, params *ColumnParameters) (*ColumnStore, error) {
+	switch enc { //nolint:exhaustive // supported encoding only
 	case parquet.Encoding_PLAIN:
 	default:
 		return nil, errors.WithFields(

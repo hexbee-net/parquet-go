@@ -6,14 +6,13 @@ import (
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/encoding"
 	"github.com/hexbee-net/parquet/parquet"
-	"github.com/hexbee-net/parquet/schema"
 )
 
 // parquetColumn is to convert a store to a parquet.SchemaElement.
 type parquetColumn interface {
 	ParquetType() parquet.Type
 	RepetitionType() parquet.FieldRepetitionType
-	Params() (*schema.ColumnParameters, error)
+	Params() (*ColumnParameters, error)
 }
 
 type typedColumnStore interface {
@@ -74,12 +73,15 @@ func (s *ColumnStore) Reset(rep parquet.FieldRepetitionType, maxR, maxD uint16) 
 	if s.typedColumnStore == nil {
 		panic("generic should be used with typed column store")
 	}
+
 	s.repTyp = rep
+
 	if s.Values == nil {
 		s.Values = &DictStore{}
 		s.RepetitionLevels = &encoding.PackedArray{}
 		s.DefinitionLevels = &encoding.PackedArray{}
 	}
+
 	s.Values.Init()
 	s.RepetitionLevels.Reset(bits.Len16(maxR))
 	s.DefinitionLevels.Reset(bits.Len16(maxD))
@@ -89,12 +91,13 @@ func (s *ColumnStore) Reset(rep parquet.FieldRepetitionType, maxR, maxD uint16) 
 	s.typedColumnStore.Reset(rep)
 }
 
-func (s *ColumnStore) GetRDLevelAt(pos int) (rLevel int32, dLevel int32, last bool) {
+func (s *ColumnStore) GetRDLevelAt(pos int) (rLevel, dLevel int32, last bool) {
 	var err error
 
 	if pos < 0 {
 		pos = s.readPos
 	}
+
 	if pos >= s.RepetitionLevels.Count() || pos >= s.DefinitionLevels.Count() {
 		return 0, 0, true
 	}
@@ -112,7 +115,7 @@ func (s *ColumnStore) GetRDLevelAt(pos int) (rLevel int32, dLevel int32, last bo
 	return rLevel, dLevel, false
 }
 
-func (s *ColumnStore) Get(maxD int32, maxR int32) (interface{}, int32, error) {
+func (s *ColumnStore) Get(maxD, maxR int32) (interface{}, int32, error) {
 	if s.Skipped {
 		return nil, 0, nil
 	}
@@ -120,6 +123,7 @@ func (s *ColumnStore) Get(maxD int32, maxR int32) (interface{}, int32, error) {
 	if s.readPos >= s.RepetitionLevels.Count() || s.readPos >= s.DefinitionLevels.Count() {
 		return nil, 0, errors.New("out of range")
 	}
+
 	_, dl, _ := s.GetRDLevelAt(s.readPos)
 	// this is a null value, increase the read pos, for advancing the rLvl and dLvl but
 	// do not touch the dict-store
@@ -127,6 +131,7 @@ func (s *ColumnStore) Get(maxD int32, maxR int32) (interface{}, int32, error) {
 		s.readPos++
 		return nil, dl, nil
 	}
+
 	v, err := s.GetNext()
 	if err != nil {
 		return nil, 0, err
@@ -143,13 +148,16 @@ func (s *ColumnStore) Get(maxD int32, maxR int32) (interface{}, int32, error) {
 	// is from the next object and we should not touch it in this call
 
 	var ret = s.typedColumnStore.Append(nil, v)
+
 	for {
 		s.readPos++
+
 		rl, _, last := s.GetRDLevelAt(s.readPos)
 		if last || rl < maxR {
 			// end of this object
 			return ret, maxD, nil
 		}
+
 		v, err := s.GetNext()
 		if err != nil {
 			return nil, maxD, err

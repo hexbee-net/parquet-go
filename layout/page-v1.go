@@ -93,6 +93,7 @@ func (r *dataPageReaderV1) ReadValues(values []interface{}) (n int, dLevel *enco
 	}
 
 	var notNull int
+
 	dLevel, notNull, err = decodePackedArray(r.definitionDecoder, size)
 	if err != nil {
 		return 0, nil, nil, errors.Wrap(err, "read definition levels failed")
@@ -108,7 +109,9 @@ func (r *dataPageReaderV1) ReadValues(values []interface{}) (n int, dLevel *enco
 				})
 		}
 	}
+
 	r.position += size
+
 	return size, dLevel, rLevel, nil
 }
 

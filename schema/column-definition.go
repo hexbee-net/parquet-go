@@ -19,7 +19,7 @@ func (c *ColumnDefinition) AsSchemaDefinition() *SchemaDefinition {
 }
 
 func (c *ColumnDefinition) CreateColumn() (*Column, error) {
-	params := &ColumnParameters{
+	params := &datastore.ColumnParameters{
 		LogicalType:   c.SchemaElement.LogicalType,
 		ConvertedType: c.SchemaElement.ConvertedType,
 		TypeLength:    c.SchemaElement.TypeLength,
@@ -40,6 +40,7 @@ func (c *ColumnDefinition) CreateColumn() (*Column, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			col.children = append(col.children, childColumn)
 		}
 	} else {

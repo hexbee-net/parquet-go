@@ -3,15 +3,14 @@ package datastore
 import (
 	"github.com/hexbee-net/errors"
 	"github.com/hexbee-net/parquet/parquet"
-	"github.com/hexbee-net/parquet/schema"
 )
 
 type valueStore struct {
-	*schema.ColumnParameters
+	*ColumnParameters
 	repTyp parquet.FieldRepetitionType
 }
 
-func (s *valueStore) Params() (*schema.ColumnParameters, error) {
+func (s *valueStore) Params() (*ColumnParameters, error) {
 	if s.ColumnParameters == nil {
 		return nil, errors.New("missing ColumnParameters")
 	}
@@ -24,7 +23,7 @@ func (s *valueStore) RepetitionType() parquet.FieldRepetitionType {
 }
 
 func GetValuesStore(typ *parquet.SchemaElement) (*ColumnStore, error) {
-	params := &schema.ColumnParameters{
+	params := &ColumnParameters{
 		LogicalType:   typ.LogicalType,
 		ConvertedType: typ.ConvertedType,
 		TypeLength:    typ.TypeLength,
@@ -32,7 +31,7 @@ func GetValuesStore(typ *parquet.SchemaElement) (*ColumnStore, error) {
 		Precision:     typ.Precision,
 	}
 
-	switch *typ.Type { //nolint:exhaustive
+	switch *typ.Type { //nolint:exhaustive // supported types only
 	case parquet.Type_BOOLEAN:
 		return newPlainColumnStore(&BooleanStore{valueStore: valueStore{ColumnParameters: params}}), nil
 	case parquet.Type_BYTE_ARRAY:
@@ -45,6 +44,7 @@ func GetValuesStore(typ *parquet.SchemaElement) (*ColumnStore, error) {
 					"type": typ.Type.String(),
 				})
 		}
+
 		return newPlainColumnStore(&ByteArrayStore{valueStore: valueStore{ColumnParameters: params}}), nil
 
 	case parquet.Type_FLOAT:
@@ -68,14 +68,14 @@ func GetValuesStore(typ *parquet.SchemaElement) (*ColumnStore, error) {
 	}
 }
 
-func GetColumnStore(elem *parquet.SchemaElement, params *schema.ColumnParameters) (colStore *ColumnStore, err error) {
+func GetColumnStore(elem *parquet.SchemaElement, params *ColumnParameters) (colStore *ColumnStore, err error) {
 	if elem.Type == nil {
 		return nil, nil
 	}
 
 	typ := elem.GetType()
 
-	switch typ { //nolint:exhaustive // supported types
+	switch typ { //nolint:exhaustive // supported types only
 	case parquet.Type_BYTE_ARRAY:
 		colStore, err = NewByteArrayStore(parquet.Encoding_PLAIN, true, params)
 	case parquet.Type_FLOAT:

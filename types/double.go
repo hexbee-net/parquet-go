@@ -1,4 +1,4 @@
-package types
+package types //nolint:dupl // it's cleaner to keep each type separate, even with duplication
 
 import (
 	"encoding/binary"
@@ -45,10 +45,12 @@ func (d DoublePlainDecoder) Init(reader io.Reader) error {
 
 func (d DoublePlainDecoder) DecodeValues(dest []interface{}) (int, error) {
 	var data uint64
+
 	for i := range dest {
 		if err := binary.Read(d.reader, binary.LittleEndian, &data); err != nil {
 			return i, err
 		}
+
 		dest[i] = math.Float64frombits(data)
 	}
 

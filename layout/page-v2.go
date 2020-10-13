@@ -61,6 +61,7 @@ func (r *dataPageReaderV2) read(reader io.Reader, pageHeader *parquet.PageHeader
 				"value": pageHeader.DataPageHeaderV2.RepetitionLevelsByteLength,
 			})
 	}
+
 	if pageHeader.DataPageHeaderV2.DefinitionLevelsByteLength < 0 {
 		return errors.WithFields(
 			errors.New("invalid DefinitionLevelsByteLength"),
@@ -68,6 +69,7 @@ func (r *dataPageReaderV2) read(reader io.Reader, pageHeader *parquet.PageHeader
 				"value": pageHeader.DataPageHeaderV2.DefinitionLevelsByteLength,
 			})
 	}
+
 	r.encoding = pageHeader.DataPageHeaderV2.Encoding
 	r.pageHeader = pageHeader
 
@@ -81,6 +83,7 @@ func (r *dataPageReaderV2) read(reader io.Reader, pageHeader *parquet.PageHeader
 	// read both level size
 	if levelsSize > 0 {
 		data := make([]byte, levelsSize)
+
 		n, err := io.ReadFull(reader, data)
 		if err != nil {
 			return errors.Wrapf(err, "need to read %d byte but there was only %d byte", levelsSize, n)
@@ -123,6 +126,7 @@ func (r *dataPageReaderV2) ReadValues(values []interface{}) (n int, dLevel *enco
 	}
 
 	var notNull int
+
 	dLevel, notNull, err = decodePackedArray(r.definitionDecoder, size)
 	if err != nil {
 		return 0, nil, nil, errors.Wrap(err, "read definition levels failed")
@@ -138,7 +142,9 @@ func (r *dataPageReaderV2) ReadValues(values []interface{}) (n int, dLevel *enco
 				})
 		}
 	}
+
 	r.position += size
+
 	return size, dLevel, rLevel, nil
 }
 

@@ -28,6 +28,7 @@ func (c GZip) CompressBlock(block []byte) ([]byte, error) {
 
 func (c GZip) DecompressBlock(block []byte) ([]byte, error) {
 	buf := bytes.NewReader(block)
+
 	r, err := gzip.NewReader(buf)
 	if err != nil {
 		return nil, err

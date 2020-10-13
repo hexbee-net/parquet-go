@@ -9,6 +9,11 @@ import (
 	"github.com/hexbee-net/parquet/encoding"
 )
 
+const (
+	deltaLengthBlockSize     = 128
+	deltaBinaryPackBlockSize = 128
+)
+
 // Encoding_PLAIN //////////////////////////////////////////////////////////////
 
 // Encoder /////////////////////////////
@@ -99,6 +104,7 @@ func (d ByteArrayPlainDecoder) next() ([]byte, error) {
 	}
 
 	buf := make([]byte, l)
+
 	_, err := io.ReadFull(d.reader, buf)
 	if err != nil {
 		return nil, err
@@ -141,7 +147,7 @@ func (e ByteArrayDeltaLengthEncoder) EncodeValues(values []interface{}) error {
 
 func (e ByteArrayDeltaLengthEncoder) Close() error {
 	enc := &Int32DeltaBPEncoder{
-		DeltaBinaryPackEncoder32: encoding.NewDeltaBinaryPackEncoder32(128, 4),
+		DeltaBinaryPackEncoder32: encoding.NewDeltaBinaryPackEncoder32(deltaLengthBlockSize, 4),
 	}
 
 	if err := encodeValue(e.writer, enc, e.lens); err != nil {
@@ -169,11 +175,13 @@ func (d *ByteArrayDeltaLengthDecoder) Init(reader io.Reader) error {
 	d.reader = reader
 	d.position = 0
 	lensDecoder := Int32DeltaBPDecoder{}
+
 	if err := lensDecoder.Init(reader); err != nil {
 		return err
 	}
 
 	d.lens = make([]int32, lensDecoder.ValuesCount)
+
 	return decodeInt32(&lensDecoder, d.lens)
 }
 
@@ -242,9 +250,11 @@ func (b ByteArrayDeltaEncoder) EncodeValues(values []interface{}) error {
 		data := values[i].([]byte)
 		pLen := prefix(b.previousValue, data)
 		b.prefixLens = append(b.prefixLens, int32(pLen))
+
 		if err := b.values.writeOne(data[pLen:]); err != nil {
 			return err
 		}
+
 		b.previousValue = data
 	}
 
@@ -254,7 +264,7 @@ func (b ByteArrayDeltaEncoder) EncodeValues(values []interface{}) error {
 func (b ByteArrayDeltaEncoder) Close() error {
 	// write the lens first
 	enc := &Int32DeltaBPEncoder{
-		DeltaBinaryPackEncoder32: encoding.NewDeltaBinaryPackEncoder32(128, 4),
+		DeltaBinaryPackEncoder32: encoding.NewDeltaBinaryPackEncoder32(deltaBinaryPackBlockSize, 4),
 	}
 
 	if err := encodeValue(b.writer, enc, b.prefixLens); err != nil {
