@@ -58,7 +58,7 @@ type ColumnStore struct {
 	Skipped bool
 }
 
-func newColumnStore(typed typedColumnStore, enc parquet.Encoding, allowDict bool) *ColumnStore {
+func NewColumnStore(typed typedColumnStore, enc parquet.Encoding, allowDict bool) *ColumnStore {
 	return &ColumnStore{
 		typedColumnStore: typed,
 		encoding:         enc,
@@ -67,7 +67,7 @@ func newColumnStore(typed typedColumnStore, enc parquet.Encoding, allowDict bool
 }
 
 func newPlainColumnStore(typed typedColumnStore) *ColumnStore {
-	return newColumnStore(typed, parquet.Encoding_PLAIN, true)
+	return NewColumnStore(typed, parquet.Encoding_PLAIN, true)
 }
 
 func (s *ColumnStore) Reset(rep parquet.FieldRepetitionType, maxR, maxD uint16) {

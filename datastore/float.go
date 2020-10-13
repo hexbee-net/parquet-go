@@ -31,7 +31,7 @@ func NewFloatStore(enc parquet.Encoding, allowDict bool, params *schema.ColumnPa
 			})
 	}
 
-	return newColumnStore(&FloatStore{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
+	return NewColumnStore(&FloatStore{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
 }
 
 func (s *FloatStore) ParquetType() parquet.Type {

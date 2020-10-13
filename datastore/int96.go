@@ -31,7 +31,7 @@ func NewInt96Store(enc parquet.Encoding, allowDict bool, params *schema.ColumnPa
 	store := &Int96Store{}
 	store.ColumnParameters = params
 
-	return newColumnStore(store, enc, allowDict), nil
+	return NewColumnStore(store, enc, allowDict), nil
 }
 
 func (s *Int96Store) ParquetType() parquet.Type {

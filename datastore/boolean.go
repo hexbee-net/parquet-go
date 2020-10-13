@@ -22,7 +22,7 @@ func NewBooleanStore(enc parquet.Encoding, params *schema.ColumnParameters) (*Co
 			})
 	}
 
-	return newColumnStore(&BooleanStore{valueStore: valueStore{ColumnParameters: params}}, enc, false), nil
+	return NewColumnStore(&BooleanStore{valueStore: valueStore{ColumnParameters: params}}, enc, false), nil
 }
 
 func (s *BooleanStore) ParquetType() parquet.Type {

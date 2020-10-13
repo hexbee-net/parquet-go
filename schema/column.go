@@ -6,6 +6,14 @@ import (
 	"github.com/hexbee-net/parquet/parquet"
 )
 
+type columnParent int
+
+const (
+	noParent columnParent = iota
+	listParent
+	mapParent
+)
+
 // ColumnParameters contains common parameters related to a column.
 type ColumnParameters struct {
 	LogicalType   *parquet.LogicalType
@@ -32,7 +40,7 @@ type Column struct {
 	maxR uint16
 	maxD uint16
 
-	parent int // one of noParent, listParent, mapParent
+	parent columnParent
 
 	// for the reader we should read this element from the meta, for the writer we need to build this element
 	element *parquet.SchemaElement
@@ -397,4 +405,18 @@ func (c *Column) getFirstRDLevel() (rLevel int32, dLevel int32, last bool) {
 	}
 
 	return -1, -1, false
+}
+
+func (c *Column) GetSchemaArray() []*parquet.SchemaElement {
+	ret := []*parquet.SchemaElement{c.Element()}
+
+	if c.data != nil {
+		return ret
+	}
+
+	for i := range c.children {
+		ret = append(ret, c.children[i].GetSchemaArray()...)
+	}
+
+	return ret
 }

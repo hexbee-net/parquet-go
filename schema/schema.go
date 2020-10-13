@@ -183,7 +183,14 @@ func (s *Schema) ResetData() {
 }
 
 func (s *Schema) GetSchemaArray() []*parquet.SchemaElement {
-	panic("implement me")
+	s.ensureRoot()
+
+	elem := s.Root.GetSchemaArray()
+
+	// the root doesn't have repetition type
+	elem[0].RepetitionType = nil
+
+	return elem
 }
 
 func (s *Schema) GetData() (map[string]interface{}, error) {

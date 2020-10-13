@@ -16,4 +16,3 @@ func ParseSchemaDefinition(schemaText string) (*SchemaDefinition, error) {
 func (d *SchemaDefinition) String() string {
 	panic("implement me")
 }
-

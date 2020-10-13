@@ -31,7 +31,7 @@ func NewDoubleStore(enc parquet.Encoding, allowDict bool, params *schema.ColumnP
 			})
 	}
 
-	return newColumnStore(&DoubleStore{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
+	return NewColumnStore(&DoubleStore{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
 }
 
 func (s *DoubleStore) ParquetType() parquet.Type {

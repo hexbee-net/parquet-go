@@ -32,7 +32,7 @@ func NewInt32Store(enc parquet.Encoding, allowDict bool, params *schema.ColumnPa
 			})
 	}
 
-	return newColumnStore(&Int32Store{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
+	return NewColumnStore(&Int32Store{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
 }
 
 func (s *Int32Store) ParquetType() parquet.Type {

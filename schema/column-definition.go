@@ -52,4 +52,5 @@ func (c *ColumnDefinition) CreateColumn() (*Column, error) {
 
 	col.element = col.buildElement()
 
-	return col, nil}
+	return col, nil
+}

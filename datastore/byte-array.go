@@ -26,7 +26,7 @@ func NewByteArrayStore(enc parquet.Encoding, allowDict bool, params *schema.Colu
 			})
 	}
 
-	return newColumnStore(&ByteArrayStore{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
+	return NewColumnStore(&ByteArrayStore{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
 }
 
 // NewFixedByteArrayStore creates a new column store to store fixed size byte arrays. If allowDict is true,
@@ -51,7 +51,7 @@ func NewFixedByteArrayStore(enc parquet.Encoding, allowDict bool, params *schema
 		return nil, errors.Errorf("fix length with len %d is not possible", *params.TypeLength)
 	}
 
-	return newColumnStore(&ByteArrayStore{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
+	return NewColumnStore(&ByteArrayStore{valueStore: valueStore{ColumnParameters: params}}, enc, allowDict), nil
 }
 
 func (s *ByteArrayStore) ParquetType() parquet.Type {
