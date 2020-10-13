@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"io/ioutil"
 
-	"github.com/google/brotli/go/cbrotli"
+	"github.com/andybalholm/brotli"
 	"github.com/hexbee-net/errors"
 )
 
 type Brotli struct {
-	cbrotli.WriterOptions
 }
 
 func (c Brotli) CompressBlock(block []byte) ([]byte, error) {
 	buf := &bytes.Buffer{}
-	w := cbrotli.NewWriter(buf, c.WriterOptions)
+	w := brotli.NewWriter(buf)
 
 	if _, err := w.Write(block); err != nil {
 		return nil, err
@@ -29,12 +28,12 @@ func (c Brotli) CompressBlock(block []byte) ([]byte, error) {
 
 func (c Brotli) DecompressBlock(block []byte) ([]byte, error) {
 	buf := bytes.NewReader(block)
-	r := cbrotli.NewReader(buf)
+	r := brotli.NewReader(buf)
 
 	ret, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decompress Brotli data")
 	}
 
-	return ret, r.Close()
+	return ret, nil
 }

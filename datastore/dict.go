@@ -1,6 +1,10 @@
 package datastore
 
-import "github.com/hexbee-net/errors"
+import (
+	"hash/fnv"
+
+	"github.com/hexbee-net/errors"
+)
 
 type DictStore struct {
 	Values     []interface{}
@@ -11,6 +15,8 @@ type DictStore struct {
 	readPos    int
 	nullCount  int32
 	NoDictMode bool
+
+	hashFunc func([]byte) interface{}
 }
 
 func (s *DictStore) Init() {
@@ -20,6 +26,8 @@ func (s *DictStore) Init() {
 	s.size = 0
 	s.readPos = 0
 	s.nullCount = 0
+
+	s.hashFunc = fnvHashFunc
 }
 
 func (s *DictStore) GetNextValue() (interface{}, error) {
@@ -59,7 +67,7 @@ func (s *DictStore) NumValues() int32 {
 }
 
 func (s *DictStore) getIndex(in interface{}, size int) int32 {
-	key := mapKey(in)
+	key := s.mapKey(in)
 
 	if idx, ok := s.indices[key]; ok {
 		return idx
@@ -72,4 +80,25 @@ func (s *DictStore) getIndex(in interface{}, size int) int32 {
 	s.indices[key] = idx
 
 	return idx
+}
+
+func (s *DictStore) mapKey(in interface{}) interface{} {
+	switch v := in.(type) {
+	case int, int32, int64, string, bool, float64, float32:
+		return in
+	case []byte:
+		return s.hashFunc(v)
+	case [12]byte:
+		return s.hashFunc(v[:])
+	default:
+		panic("not supported type")
+	}
+}
+
+func fnvHashFunc(in []byte) interface{} {
+	hash := fnv.New64()
+	if err := writeFull(hash, in); err != nil {
+		panic(err)
+	}
+	return hash.Sum64()
 }
