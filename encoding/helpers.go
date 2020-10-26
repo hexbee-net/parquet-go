@@ -21,7 +21,7 @@ func (r byteReader) ReadByte() (byte, error) {
 	return buf[0], nil
 }
 
-func readUVariant32(r io.Reader) (int32, error) {
+func readUVarInt32(r io.Reader) (int32, error) {
 	b, ok := r.(io.ByteReader)
 	if !ok {
 		b = &byteReader{Reader: r}
@@ -39,7 +39,7 @@ func readUVariant32(r io.Reader) (int32, error) {
 	return int32(i), nil
 }
 
-func readVariant32(r io.Reader) (int32, error) {
+func readVarInt32(r io.Reader) (int32, error) {
 	b, ok := r.(io.ByteReader)
 	if !ok {
 		b = &byteReader{Reader: r}
@@ -57,7 +57,7 @@ func readVariant32(r io.Reader) (int32, error) {
 	return int32(i), nil
 }
 
-func readVariant64(r io.Reader) (int64, error) {
+func readVarInt64(r io.Reader) (int64, error) {
 	b, ok := r.(io.ByteReader)
 	if !ok {
 		b = &byteReader{Reader: r}
@@ -66,14 +66,14 @@ func readVariant64(r io.Reader) (int64, error) {
 	return binary.ReadVarint(b)
 }
 
-func writeVariant(w io.Writer, in int64) error {
+func writeVarInt64(w io.Writer, in int64) error {
 	buf := make([]byte, 12)
 	n := binary.PutVarint(buf, in)
 
 	return writeFull(w, buf[:n])
 }
 
-func writeUVariant(w io.Writer, in uint64) error {
+func writeUVarInt64(w io.Writer, in uint64) error {
 	buf := make([]byte, 12)
 	n := binary.PutUvarint(buf, in)
 

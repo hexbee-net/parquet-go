@@ -109,7 +109,7 @@ func (d *HybridDecoder) Next() (int32, error) {
 }
 
 func (d *HybridDecoder) readRunHeader() error {
-	h, err := readUVariant32(d.r)
+	h, err := readUVarInt32(d.r)
 	if err != nil {
 		// this error could be EOF which is ok by this implementation the only issue is the binary.ReadUVariant can not
 		// return UnexpectedEOF is there is some bit read from the stream with no luck, it always return EOF

@@ -235,11 +235,12 @@ func checkColumnChunk(chunk *parquet.ColumnChunk, col *schema.Column) error {
 			})
 	}
 
-	if typ := *col.Element().Type; chunk.MetaData.Type != typ {
+	typ := col.Element().GetType()
+	if chunk.MetaData.Type != typ {
 		return errors.WithFields(
 			errors.New("wrong type in column chunk meta-data"),
 			errors.Fields{
-				"expected": typ,
+				"expected": typ.String(),
 				"actual":   chunk.MetaData.Type.String(),
 			})
 	}

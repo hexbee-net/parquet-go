@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/hexbee-net/errors"
 )
 
 type Writer struct {
@@ -78,7 +79,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 func (w *Writer) Close() (err error) {
 	if w.pipeWriter != nil {
 		if closeErr := w.pipeWriter.Close(); closeErr != nil {
-			return closeErr
+			return errors.Wrap(closeErr, "failed to close pipe writer")
 		}
 	}
 

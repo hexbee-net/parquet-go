@@ -12,31 +12,31 @@ type File struct {
 }
 
 // NewReader creates a local file Reader.
-func NewReader(path string) (reader *File, err error) {
-	reader = &File{
+func NewReader(path string) (r *File, err error) {
+	r = &File{
 		FilePath: "",
 		file:     nil,
 	}
 
-	if reader.file, err = os.Open(path); err != nil {
+	if r.file, err = os.Open(path); err != nil {
 		return nil, errors.Wrap(err, "failed to open source file")
 	}
 
-	return reader, nil
+	return r, nil
 }
 
 // NewWriter creates an local file Writer.
-func NewWriter(path string) (writer *File, err error) {
-	writer = &File{
+func NewWriter(path string) (w *File, err error) {
+	w = &File{
 		FilePath: "",
 		file:     nil,
 	}
 
-	if writer.file, err = os.Create(path); err != nil {
+	if w.file, err = os.Create(path); err != nil {
 		return nil, errors.Wrap(err, "failed to create target file")
 	}
 
-	return writer, nil
+	return w, nil
 }
 
 // Reader //////////////////////////////
