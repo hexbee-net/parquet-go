@@ -69,7 +69,9 @@ func decodePackedArray(d levelDecoder, count int) (*encoding.PackedArray, int, e
 	array := &encoding.PackedArray{}
 	notNull := 0 // Counting not nulls only good for dLevels
 
-	array.Reset(bits.Len16(d.maxLevel()))
+	if err := array.Reset(bits.Len16(d.maxLevel())); err != nil {
+		return nil, 0, err
+	}
 
 	for i := 0; i < count; i++ {
 		u, err := d.Next()

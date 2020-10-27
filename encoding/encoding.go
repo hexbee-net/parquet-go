@@ -11,6 +11,8 @@ const (
 	errNilReader             = errors.Error("reader is nil")
 	errInvalidBlockSize      = errors.Error("invalid block size")
 	errInvalidMiniblockCount = errors.Error("invalid mini block count")
+	errInvalidBitWidth       = errors.Error("invalid bit-width")
+	errOutOfRange            = errors.Error("out of range")
 )
 
 type Decoder interface {

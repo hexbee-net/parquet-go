@@ -25,9 +25,13 @@ type PackedArray struct {
 	reader unpack8int32Func
 }
 
-func (a *PackedArray) Reset(bitWidth int) {
+func (a *PackedArray) Reset(bitWidth int) error {
 	if bitWidth < 0 || bitWidth > 32 {
-		panic("invalid bit width")
+		return errors.WithFields(
+			errors.WithStack(errInvalidBitWidth),
+			errors.Fields{
+				"bit-width": bitWidth,
+			})
 	}
 
 	a.bw = bitWidth
@@ -36,15 +40,8 @@ func (a *PackedArray) Reset(bitWidth int) {
 	a.data = a.data[:0]
 	a.writer = pack8Int32FuncByWidth[bitWidth]
 	a.reader = unpack8Int32FuncByWidth[bitWidth]
-}
 
-func (a *PackedArray) Flush() {
-	for i := a.bufPos; i < 8; i++ {
-		a.buf[i] = 0
-	}
-
-	a.data = append(a.data, a.writer(a.buf)...)
-	a.bufPos = 0
+	return nil
 }
 
 func (a *PackedArray) AppendSingle(v int32) {
@@ -58,9 +55,13 @@ func (a *PackedArray) AppendSingle(v int32) {
 }
 
 func (a *PackedArray) AppendArray(other *PackedArray) error {
+	if other == nil {
+		return errors.New("source array is nil")
+	}
+
 	if a.bw != other.bw {
 		return errors.WithFields(
-			errors.New("cannot append array with different bit width"),
+			errors.New("cannot append array with different bit-width"),
 			errors.Fields{
 				"this":  a.bw,
 				"other": other.bw,
@@ -85,21 +86,25 @@ func (a *PackedArray) AppendArray(other *PackedArray) error {
 	return nil
 }
 
-func (a *PackedArray) Write(writer io.Writer) error {
-	return writeFull(writer, a.data)
+func (a *PackedArray) Count() int {
+	return a.count
 }
 
 func (a *PackedArray) At(pos int) (int32, error) {
 	if pos < 0 || pos >= a.count {
-		return 0, errors.New("out of range")
+		return 0, errors.WithFields(
+			errors.WithStack(errOutOfRange),
+			errors.Fields{
+				"pos": pos,
+			})
 	}
 
 	if a.bw == 0 {
 		return 0, nil
 	}
 
-	block := (pos / 8) * a.bw
-	idx := pos % 8
+	block := (pos / packedArrayBufSize) * a.bw
+	idx := pos % packedArrayBufSize
 
 	if block >= len(a.data) {
 		return a.buf[idx], nil
@@ -110,6 +115,15 @@ func (a *PackedArray) At(pos int) (int32, error) {
 	return buf[idx], nil
 }
 
-func (a *PackedArray) Count() int {
-	return a.count
+func (a *PackedArray) Flush() {
+	for i := a.bufPos; i < packedArrayBufSize; i++ {
+		a.buf[i] = 0
+	}
+
+	a.data = append(a.data, a.writer(a.buf)...)
+	a.bufPos = 0
+}
+
+func (a *PackedArray) Write(writer io.Writer) error {
+	return writeFull(writer, a.data)
 }

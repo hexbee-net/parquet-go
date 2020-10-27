@@ -69,7 +69,7 @@ func newPlainColumnStore(typed typedColumnStore) *ColumnStore {
 	return NewColumnStore(typed, parquet.Encoding_PLAIN, true)
 }
 
-func (s *ColumnStore) Reset(rep parquet.FieldRepetitionType, maxR, maxD uint16) {
+func (s *ColumnStore) Reset(rep parquet.FieldRepetitionType, maxR, maxD uint16) error {
 	if s.typedColumnStore == nil {
 		panic("generic should be used with typed column store")
 	}
@@ -83,12 +83,21 @@ func (s *ColumnStore) Reset(rep parquet.FieldRepetitionType, maxR, maxD uint16) 
 	}
 
 	s.Values.Init()
-	s.RepetitionLevels.Reset(bits.Len16(maxR))
-	s.DefinitionLevels.Reset(bits.Len16(maxD))
+
+	if err := s.RepetitionLevels.Reset(bits.Len16(maxR)); err != nil {
+		return err
+	}
+
+	if err := s.DefinitionLevels.Reset(bits.Len16(maxD)); err != nil {
+		return err
+	}
+
 	s.readPos = 0
 	s.Skipped = false
 
 	s.typedColumnStore.Reset(rep)
+
+	return nil
 }
 
 func (s *ColumnStore) GetRDLevelAt(pos int) (rLevel, dLevel int32, last bool) {
@@ -115,7 +124,7 @@ func (s *ColumnStore) GetRDLevelAt(pos int) (rLevel, dLevel int32, last bool) {
 	return rLevel, dLevel, false
 }
 
-func (s *ColumnStore) Get(maxD, maxR int32) (interface{}, int32, error) {
+func (s *ColumnStore) Get(maxD, maxR int32) (value interface{}, maxDefinitions int32, err error) {
 	if s.Skipped {
 		return nil, 0, nil
 	}
