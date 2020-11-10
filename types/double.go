@@ -4,6 +4,9 @@ import (
 	"encoding/binary"
 	"io"
 	"math"
+	"reflect"
+
+	"github.com/hexbee-net/errors"
 )
 
 // Encoder /////////////////////////////
@@ -12,22 +15,37 @@ type DoublePlainEncoder struct {
 	writer io.Writer
 }
 
-func (e DoublePlainEncoder) Init(writer io.Writer) error {
+func (e *DoublePlainEncoder) Init(writer io.Writer) error {
+	if writer == nil {
+		return errors.WithStack(errNilWriter)
+	}
+
 	e.writer = writer
 
 	return nil
 }
 
-func (e DoublePlainEncoder) EncodeValues(values []interface{}) error {
+func (e *DoublePlainEncoder) EncodeValues(values []interface{}) error {
 	data := make([]uint64, len(values))
+
 	for i := range values {
-		data[i] = math.Float64bits(values[i].(float64))
+		v, ok := values[i].(float64)
+		if !ok {
+			return errors.WithFields(
+				errors.WithStack(errInvalidType),
+				errors.Fields{
+					"expected": "float32",
+					"actual":   reflect.TypeOf(values[i]).String(),
+				})
+		}
+
+		data[i] = math.Float64bits(v)
 	}
 
 	return binary.Write(e.writer, binary.LittleEndian, data)
 }
 
-func (e DoublePlainEncoder) Close() error {
+func (e *DoublePlainEncoder) Close() error {
 	return nil
 }
 
@@ -37,13 +55,17 @@ type DoublePlainDecoder struct {
 	reader io.Reader
 }
 
-func (d DoublePlainDecoder) Init(reader io.Reader) error {
+func (d *DoublePlainDecoder) Init(reader io.Reader) error {
+	if reader == nil {
+		return errors.WithStack(errNilReader)
+	}
+
 	d.reader = reader
 
 	return nil
 }
 
-func (d DoublePlainDecoder) DecodeValues(dest []interface{}) (int, error) {
+func (d *DoublePlainDecoder) DecodeValues(dest []interface{}) (int, error) {
 	var data uint64
 
 	for i := range dest {

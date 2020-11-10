@@ -1,6 +1,16 @@
 package types
 
-import "io"
+import (
+	"io"
+
+	"github.com/hexbee-net/errors"
+)
+
+const (
+	errInvalidType = errors.Error("invalid type")
+	errNilWriter   = errors.Error("writer is nil")
+	errNilReader   = errors.Error("reader is nil")
+)
 
 type ValuesEncoder interface {
 	io.Closer
