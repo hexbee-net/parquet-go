@@ -44,17 +44,16 @@ func (e *DictEncoder) Close() error {
 		return err
 	}
 
-	enc := encoding.NewHybridEncoder(w)
-
-	if err := enc.Init(e.writer); err != nil {
+	enc, err := encoding.NewHybridEncoder(w)
+	if err != nil {
 		return err
 	}
 
-	if err := enc.Encode(e.Data); err != nil {
+	if err = enc.Append(e.Data); err != nil {
 		return err
 	}
 
-	return enc.Close()
+	return enc.Write(e.writer)
 }
 
 // Decoder /////////////////////////////

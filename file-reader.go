@@ -154,13 +154,12 @@ func (f *FileReader) advanceIfNeeded() error {
 
 // readRowGroup read the next row group into memory.
 func (f *FileReader) readRowGroup() error {
-	if len(f.meta.RowGroups) <= f.rowGroupPosition {
+	if f.rowGroupPosition >= len(f.meta.RowGroups) {
 		return io.EOF
 	}
 
+	rowGroups := f.meta.RowGroups[f.rowGroupPosition]
 	f.rowGroupPosition++
-
-	rowGroups := f.meta.RowGroups[f.rowGroupPosition-1]
 
 	f.Reader.ResetData()
 	f.Reader.SetNumRecords(rowGroups.NumRows)
@@ -258,7 +257,7 @@ func readFileSchema(meta *parquet.FileMetaData) (schema.Reader, error) {
 		return nil, errors.New("no schema element found")
 	}
 
-	s, err := schema.LoadSchema(meta.Schema[1:])
+	s, err := schema.LoadSchema(meta.Schema)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file schema from meta data")
 	}

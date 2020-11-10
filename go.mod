@@ -20,4 +20,5 @@ require (
 	github.com/pierrec/lz4 v2.5.2+incompatible
 	github.com/stretchr/testify v1.6.1
 	github.com/tj/assert v0.0.3
+	google.golang.org/api v0.32.0
 )

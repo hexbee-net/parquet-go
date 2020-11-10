@@ -132,12 +132,22 @@ func copyLeftOvers(dest []interface{}, src []bool) (leftOver []bool, readCount i
 
 type BooleanRLEEncoder struct {
 	encoder *encoding.HybridEncoder
+	writer  io.Writer
 }
 
-func (e *BooleanRLEEncoder) Init(writer io.Writer) error {
-	e.encoder = encoding.NewHybridEncoder(1)
+func (e *BooleanRLEEncoder) Init(writer io.Writer) (err error) {
+	if writer == nil {
+		return errors.WithStack(errNilWriter)
+	}
 
-	return e.encoder.InitSize(writer)
+	e.encoder, err = encoding.NewHybridEncoder(1)
+	if err != nil {
+		return err
+	}
+
+	e.writer = writer
+
+	return nil
 }
 
 func (e *BooleanRLEEncoder) EncodeValues(values []interface{}) error {
@@ -151,11 +161,11 @@ func (e *BooleanRLEEncoder) EncodeValues(values []interface{}) error {
 		}
 	}
 
-	return e.encoder.Encode(buf)
+	return e.encoder.Append(buf)
 }
 
 func (e *BooleanRLEEncoder) Close() error {
-	return e.encoder.Close()
+	return e.encoder.Write(e.writer)
 }
 
 // Decoder /////////////////////////////
